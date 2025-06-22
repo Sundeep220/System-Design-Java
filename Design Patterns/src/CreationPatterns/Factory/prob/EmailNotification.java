@@ -1,4 +1,4 @@
-package CreationPatterns.Factory;
+package CreationPatterns.Factory.prob;
 
 public class EmailNotification implements Notification{
     @Override

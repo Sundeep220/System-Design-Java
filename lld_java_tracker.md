@@ -6,11 +6,11 @@
 ---
 
 ### **Week 1: OOP and SOLID Principles**
-- [ ] Understand Class & Object, Abstraction, Encapsulation
-- [ ] Inheritance & Polymorphism (IS-A vs HAS-A)
-- [ ] Dive into SOLID Principles (1 per day)
-- [ ] Practice small design problems applying OOP/SOLID
-- [ ] Implement simple models (e.g., Student-Class, Bank Account)
+- [x] Understand Class & Object, Abstraction, Encapsulation
+- [x] Inheritance & Polymorphism (IS-A vs HAS-A)
+- [x] Dive into SOLID Principles (1 per day)
+- [x] Practice small design problems applying OOP/SOLID
+- [x] Implement simple models (e.g., Student-Class, Bank Account)
 
 **Resources:**
 - Java OOP tutorials (Codecademy, Java Brains)
@@ -19,11 +19,11 @@
 ---
 
 ### **Week 2: Creational Design Patterns**
-- [ ] Singleton (with thread-safety)
-- [ ] Factory & Abstract Factory
-- [ ] Builder
-- [ ] Prototype
-- [ ] Implement each in Java
+- [x] Singleton (with thread-safety)
+- [x] Factory & Abstract Factory
+- [x] Builder
+- [x] Prototype
+- [x] Implement each in Java
 
 **Mini Project:** Create a Vehicle Factory system
 

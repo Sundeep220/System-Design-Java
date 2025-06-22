@@ -35,8 +35,8 @@ public class Main {
         enrollmentService.enroll(student, course);
 
 
-//        ReportFormatter formatter = new CsvReportFormatter();
-        ReportFormatter formatter = new JsonReportFormatter();
+        ReportFormatter formatter = new CsvReportFormatter();
+//        ReportFormatter formatter = new JsonReportFormatter();
 
         ReportService reportService = new ReportServiceImpl(enrollmentRepository, formatter);
         System.out.println("===== REPORT =====");

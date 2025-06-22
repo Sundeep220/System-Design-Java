@@ -3,6 +3,9 @@
 
 ---
 
+### Reference:
+- [SOLID Principles](https://chatgpt.com/share/684c09a9-b450-800a-aad8-9ceff32bf9b4)
+
 ## 🌊 Phase 1: Foundations of OOP (Week 1)
 
 ### 🎯 Topics:

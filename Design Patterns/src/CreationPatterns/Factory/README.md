@@ -1,81 +1,110 @@
-# 🏭 Factory Method Pattern Assignment
+# 🏭 Factory Design Pattern in Java
 
-## 🎯 Problem: Notification Service Factory
+## 🎯 Intent
 
-You are designing a **Notification System** that sends notifications through different channels: Email, SMS, and Push Notification.
-
-The notification types may vary and the client code should not be responsible for instantiating the concrete notification classes directly.
+> Define an interface for creating an object, but let subclasses decide which class to instantiate.
 
 ---
 
-## 📦 Requirements
+## 🧠 Real-World Analogy
 
-### 1. Define a `Notification` interface (or abstract class)
-- Method: `void send(String message)`
+Think of a **Pizza Store**:
 
-### 2. Implement concrete classes:
-- `EmailNotification`
-- `SMSNotification`
-- `PushNotification`
+* You order "Veg Pizza" or "Cheese Pizza" — but you don’t care how it’s made.
+* The **factory (kitchen)** handles the creation logic based on your request.
 
-Each class should implement the `send()` method to simulate sending a notification by printing a message like:
+---
+
+## 📦 Structure
 
 ```java
-Sending Email with message: <message>
-Sending SMS with message: <message>
-Sending Push Notification with message: <message>
+interface Product {
+    void use();
+}
+
+class ConcreteProductA implements Product {
+    public void use() {
+        System.out.println("Using Product A");
+    }
+}
+
+class ConcreteProductB implements Product {
+    public void use() {
+        System.out.println("Using Product B");
+    }
+}
+
+class ProductFactory {
+    public static Product createProduct(String type) {
+        if (type.equalsIgnoreCase("A")) return new ConcreteProductA();
+        else if (type.equalsIgnoreCase("B")) return new ConcreteProductB();
+        else throw new IllegalArgumentException("Unknown product type");
+    }
+}
+
+// Usage:
+Product p = ProductFactory.createProduct("A");
+p.use();
 ```
 
 ---
 
-### 3. Create a `NotificationFactory` class
+## ✅ Advantages
 
-- Method:
+* Decouples object creation logic from usage
+* Easier to add new types
+* Cleaner code with **Open/Closed Principle**
+
+---
+
+## 🔧 When to Use
+
+* When you need to **create objects without exposing the creation logic**
+* When the **class being instantiated can vary at runtime**
+
+---
+
+## 🧪 Example: Notification Factory
+
 ```java
-public static Notification createNotification(String type)
-```
+interface Notification {
+    void notifyUser();
+}
 
-- Based on the `type` ("EMAIL", "SMS", "PUSH"), return the corresponding `Notification` instance.
-- If the type is unknown, return `null` or throw an `IllegalArgumentException`.
+class SMSNotification implements Notification {
+    public void notifyUser() {
+        System.out.println("Sending SMS Notification");
+    }
+}
 
----
+class EmailNotification implements Notification {
+    public void notifyUser() {
+        System.out.println("Sending Email Notification");
+    }
+}
 
-## 🧪 Testing
+class NotificationFactory {
+    public static Notification createNotification(String channel) {
+        if (channel.equalsIgnoreCase("SMS")) return new SMSNotification();
+        else if (channel.equalsIgnoreCase("Email")) return new EmailNotification();
+        else throw new IllegalArgumentException("Unknown channel");
+    }
+}
 
-In a `Main` class:
-
-1. Get a notification instance using the factory:
-   ```java
-   Notification notification = NotificationFactory.createNotification("EMAIL");
-   ```
-
-2. Call the `send()` method with any sample message.
-
-3. Repeat the same for all types: "EMAIL", "SMS", "PUSH".
-
-4. Try an invalid input like "WHATSAPP" and handle it gracefully.
-
----
-
-## 🧠 Bonus (Optional)
-
-- Instead of using strings directly, use an `enum NotificationType { EMAIL, SMS, PUSH }` for better type safety.
-- Add a configuration (Map) that decides which type to use dynamically.
-
----
-
-## ✅ Expected Output (Sample)
-
-```
-Sending Email with message: Hello from Email!
-Sending SMS with message: Hello from SMS!
-Sending Push Notification with message: Hello from Push!
-Invalid notification type: WHATSAPP
+// Usage:
+Notification n = NotificationFactory.createNotification("Email");
+n.notifyUser();
 ```
 
 ---
 
-### 🔍 Design Intent
+## 📌 Summary
 
-- You should NOT instantiate `EmailNotification`, `SMSNotification`, etc., directly in the `Main` class.
-- Let the factory abstract away the creation logic.
+| Feature  | Description                          |
+| -------- | ------------------------------------ |
+| Type     | Creational Pattern                   |
+| Key Idea | Encapsulate object creation logic    |
+| Benefits | Flexibility, Clean Code, Scalability |
+| When     | Type of object determined at runtime |
+
+---

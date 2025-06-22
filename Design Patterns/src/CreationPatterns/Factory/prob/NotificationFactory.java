@@ -1,4 +1,4 @@
-package CreationPatterns.Factory;
+package CreationPatterns.Factory.prob;
 
 public class NotificationFactory {
     public static Notification sendNotification (String type) throws IllegalArgumentException{

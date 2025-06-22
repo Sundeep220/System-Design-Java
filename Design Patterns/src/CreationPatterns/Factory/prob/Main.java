@@ -1,4 +1,4 @@
-package CreationPatterns.Factory;
+package CreationPatterns.Factory.prob;
 
 public class Main {
     public static void main(String[] args) throws IllegalArgumentException {
