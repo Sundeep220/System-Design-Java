@@ -52,8 +52,13 @@ They help:
 
 ---
 
-> 🚀 Next Sections:
-> - Detailed explanation of each pattern with code
-> - Real-world analogies
-> - Assignments and practical applications
+## 🚀 Creational Patterns vs SOLID Principles:
+| Design Pattern        | Dominant SOLID Principle(s)                       | Reason                                                                |
+| --------------------- | ------------------------------------------------- | --------------------------------------------------------------------- |
+| 🔁 Singleton          | **S** - Single Responsibility                     | Centralizes access to a single instance (e.g., Logger, ConfigManager) |
+| 🏭 Factory Method     | **O** - Open/Closed                               | Easy to extend by adding new product types without modifying factory  |
+| 🏭🏭 Abstract Factory | **O**, **D** - Open/Closed, Dependency Inversion  | Depends on abstractions to create families of related objects         |
+| 🧱 Builder            | **S**, **O** - Single Responsibility, Open/Closed | Separates construction from representation, and is extensible         |
+| 🧬 Prototype          | **O**, **L** - Open/Closed, Liskov                | New types can extend prototype and be cloned without altering clients |
+
 

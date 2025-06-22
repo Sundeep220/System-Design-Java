@@ -1,8 +1,4 @@
-Awesome! Here's an **advanced Composite Pattern assignment** to solidify your understanding.
-
----
-
-## 💼 Advanced Problem: **Organization Hierarchy System**
+# 💼 Problem: **Organization Hierarchy System**
 
 ---
 
