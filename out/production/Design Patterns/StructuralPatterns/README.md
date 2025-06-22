@@ -46,3 +46,14 @@ Reduces memory usage by sharing common parts of state between multiple objects i
 ---
 
 Each of these patterns plays a vital role in organizing your code architecture effectively. In the upcoming files, we'll explore each of them in detail with real-world analogies and Java examples.
+
+## 🧩 Structural Design Patterns vs SOLID Principles
+| Structural Pattern | Dominant SOLID Principle Applied          | 🔍 How it Applies                                                                                             |
+| ------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Adapter**        | **Open/Closed Principle (OCP)**           | Enables adapting new classes without modifying existing code (open for extension, closed for modification).   |
+| **Decorator**      | **Single Responsibility Principle (SRP)** | Allows behavior to be added to objects dynamically while keeping each class focused.                          |
+| **Proxy**          | **Open/Closed Principle (OCP)**           | Add access control, lazy loading, or logging without changing the actual subject.                             |
+| **Composite**      | **Liskov Substitution Principle (LSP)**   | Treat individual and composite objects uniformly through shared interfaces.                                   |
+| **Bridge**         | **Dependency Inversion Principle (DIP)**  | Abstraction and implementation are decoupled, depending on interfaces rather than concrete classes.           |
+| **Facade**         | **Single Responsibility Principle (SRP)** | Provides a unified interface, isolating clients from complex subsystem logic.                                 |
+| **Flyweight**      | **Single Responsibility Principle (SRP)** | Separates shared (intrinsic) and unique (extrinsic) responsibilities to improve performance and memory usage. |
