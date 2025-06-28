@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Design Patterns/Design Patterns.iml" filepath="$PROJECT_DIR$/Design Patterns/Design Patterns.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Problems/Problems.iml" filepath="$PROJECT_DIR$/Problems/Problems.iml" />
+      <module fileurl="file://$PROJECT_DIR$/RelationshipDiagrams/RelationshipDiagrams.iml" filepath="$PROJECT_DIR$/RelationshipDiagrams/RelationshipDiagrams.iml" />
       <module fileurl="file://$PROJECT_DIR$/SOLID principles/SOLID principles.iml" filepath="$PROJECT_DIR$/SOLID principles/SOLID principles.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/System-Design-Java.iml" filepath="$PROJECT_DIR$/.idea/System-Design-Java.iml" />
     </modules>
