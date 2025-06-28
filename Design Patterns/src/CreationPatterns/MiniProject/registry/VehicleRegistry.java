@@ -7,8 +7,8 @@ import CreationPatterns.MiniProject.logging.LogService;
 
 public class VehicleRegistry {
     private static VehicleRegistry instance;
-    private Map<String, Vehicle> prototypes = new HashMap<>();
-    private Map<String, Vehicle> cache = new HashMap<>();
+    private final Map<String, Vehicle> prototypes = new HashMap<>();
+    private final Map<String, Vehicle> cache = new HashMap<>();
 
     private VehicleRegistry() {} // Private constructor
     // return singleton instance

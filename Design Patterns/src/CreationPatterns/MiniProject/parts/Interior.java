@@ -4,8 +4,8 @@ package CreationPatterns.MiniProject.parts;
  * @Purpose: This class represents the interior of a vehicle.
  */
 public class Interior {
-    private String material; // e.g., Leather, Fabric
-    private boolean infotainment;
+    private final String material; // e.g., Leather, Fabric
+    private final boolean infotainment;
 
     public Interior(String material, boolean infotainment) {
         this.material = material;

@@ -9,9 +9,9 @@ public class Car implements Vehicle {
     private String model;
     private String color;
 
-    private Engine engine;
-    private WheelConfig wheelConfig;
-    private Interior interior;
+    private final Engine engine;
+    private final WheelConfig wheelConfig;
+    private final Interior interior;
 
     public Car(String model, String color, Engine engine, Interior interior, WheelConfig wheelConfig) {
         this.model = model;

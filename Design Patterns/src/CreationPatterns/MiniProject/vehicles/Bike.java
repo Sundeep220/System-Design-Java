@@ -9,9 +9,9 @@ public class Bike implements Vehicle {
     private String model;
     private String color;
 
-    private Engine engine;
-    private Interior interior;
-    private WheelConfig wheelConfig;
+    private final Engine engine;
+    private final Interior interior;
+    private final WheelConfig wheelConfig;
 
     public Bike(String model, String color, Engine engine, Interior interior, WheelConfig wheelConfig) {
         this.model = model;

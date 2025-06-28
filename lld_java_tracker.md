@@ -30,13 +30,13 @@
 ---
 
 ### **Week 3: Structural Design Patterns**
-- [ ] Adapter
-- [ ] Decorator
-- [ ] Proxy
-- [ ] Composite
-- [ ] Bridge & Facade
+- [x] Adapter
+- [x] Decorator
+- [x] Proxy
+- [x] Composite
+- [x] Bridge & Facade
 
-**Mini Project:** Design a UI component system using Composite/Decorator
+**Mini Project:** Design a UI component system using Composite/Decorator  
 
 ---
 
