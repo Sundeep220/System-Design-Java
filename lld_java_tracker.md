@@ -46,6 +46,11 @@
 - [ ] Command
 - [ ] Template Method
 - [ ] State / Chain of Responsibility
+- [ ] Iterator
+- [ ] Memento
+- [ ] Mediator
+- [ ] Visitor
+- [ ] Interpreter
 
 **Mini Project:** Notification system or Undo/Redo System
 
