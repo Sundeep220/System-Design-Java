@@ -17,7 +17,7 @@ public class ParkingLot {
         this.spots = spots;
         this.activeTickets = new HashMap<>();
     }
-
+    // Making this thread-safe
     public static synchronized ParkingLot getInstance(List<Spot> initialSpots) {
         if (instance == null) {
             instance = new ParkingLot(initialSpots);
