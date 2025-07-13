@@ -1,0 +1,117 @@
+@startuml
+
+' =================== ENTITIES ========================
+class Vehicle {
+    - plateNumber: String
+    - type: VehicleType
+}
+
+interface VehicleType {
+    + getTypeName(): String
+    + canFit(SpotType): boolean
+}
+
+class CarType implements VehicleType
+class BikeType implements VehicleType
+class TruckType implements VehicleType
+
+enum SpotType {
+    COMPACT
+    LARGE
+    BIKE
+    HANDICAPPED
+}
+
+abstract class Spot {
+    - id: String
+    - spotType: SpotType
+    - isOccupied: boolean
+    + canFit(Vehicle): boolean
+}
+
+class CompactSpot extends Spot
+class LargeSpot extends Spot
+class BikeSpot extends Spot
+class HandicappedSpot extends Spot
+
+class Ticket {
+    - ticketId: String
+    - entryTime: LocalDateTime
+    - spotId: String
+    - vehicle: Vehicle
+    - entranceGateId: String
+}
+
+class EntranceGate {
+    - id: String
+    + generateTicket(Vehicle): Ticket
+}
+
+class ExitGate {
+    - id: String
+    + processExit(Ticket, PaymentMethod): void
+}
+
+class ParkingLot {
+    - instance: ParkingLot
+    - Map<SpotType, List<Spot>> spots
+    - Map<String, Ticket> activeTickets
+    - Map<String, EntranceGate>
+    - Map<String, ExitGate>
+    + parkVehicle(Vehicle, entranceId): Ticket
+    + exitVehicle(ticketId, method): void
+}
+
+' =================== PAYMENT ========================
+interface PaymentStrategy {
+    + pay(amount: double): void
+}
+
+class UPIPayment implements PaymentStrategy
+class CardPayment implements PaymentStrategy
+class CashPayment implements PaymentStrategy
+
+class PaymentProcessor {
+    - strategy: PaymentStrategy
+    + setStrategy(PaymentStrategy): void
+    + process(amount: double): void
+}
+
+' =================== OBSERVER ========================
+interface MonitoringObserver {
+    + update(event: String): void
+}
+
+class MonitoringSystem implements MonitoringObserver {
+    + update(event: String): void
+}
+
+' =================== RELATIONSHIPS ========================
+Vehicle --> VehicleType
+Vehicle --> Ticket
+VehicleType <|.. CarType
+VehicleType <|.. BikeType
+VehicleType <|.. TruckType
+
+Spot <|-- CompactSpot
+Spot <|-- LargeSpot
+Spot <|-- BikeSpot
+Spot <|-- HandicappedSpot
+Spot --> SpotType
+Spot --> Vehicle
+
+EntranceGate --> ParkingLot
+ExitGate --> ParkingLot
+ParkingLot --> Ticket
+ParkingLot --> Spot
+ParkingLot --> EntranceGate
+ParkingLot --> ExitGate
+
+PaymentProcessor --> PaymentStrategy
+PaymentStrategy <|.. UPIPayment
+PaymentStrategy <|.. CardPayment
+PaymentStrategy <|.. CashPayment
+
+ParkingLot --> MonitoringSystem : <<Observer>>
+
+@enduml
