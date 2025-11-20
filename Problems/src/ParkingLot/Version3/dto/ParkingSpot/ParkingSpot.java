@@ -9,6 +9,9 @@ public abstract class ParkingSpot {
     private int floor;
     private int amount;
 
+    public ParkingSpot() {}
+
+
     public ParkingSpot(int floor, int amount) {
         this.floor = floor;
         this.amount = amount;
@@ -32,7 +35,7 @@ public abstract class ParkingSpot {
         isFree = free;
     }
 
-    public int getFloor() {
+    public Integer getFloor() {
         return floor;
     }
 
@@ -40,11 +43,13 @@ public abstract class ParkingSpot {
         this.floor = floor;
     }
 
-    public int getAmount() {
+    public Integer getAmount() {
         return amount;
     }
 
     public void setAmount(int amount) {
         this.amount = amount;
     }
+
+    public abstract int cost(int hours);
 }

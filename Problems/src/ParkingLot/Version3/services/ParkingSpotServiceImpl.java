@@ -15,7 +15,7 @@ public class ParkingSpotServiceImpl implements ParkingSpotService {
     @Override
     public ParkingSpot create(ParkingSpotEnum type, Integer floor) {
         try {
-            ParkingSpot parkingSpot = (ParkingSpot) type.getParkingSpot().getConstructor(Integer.class).newInstance(floor, 1);
+            ParkingSpot parkingSpot = (ParkingSpot) type.getParkingSpot().getConstructor(Integer.class).newInstance(floor);
             ParkingLot.getInstance().getFreeparkingSpots().get(type).add(parkingSpot);
             displayService.update(type, 1);
             return parkingSpot;

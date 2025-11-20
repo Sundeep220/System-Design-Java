@@ -3,6 +3,7 @@ package ParkingLot.Version3.dto;
 import ParkingLot.Version3.dto.ParkingSpot.ParkingSpot;
 import ParkingLot.Version3.dto.Vehicle.Vehicle;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,5 +51,9 @@ public class ParkingTicket {
 
     public void setEntryTime(LocalDateTime entryTime) {
         this.entryTime = entryTime;
+    }
+
+    public int getParkingHours(){
+        return (int) Duration.between(entryTime, LocalDateTime.now()).toHours();
     }
 }

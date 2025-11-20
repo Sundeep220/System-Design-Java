@@ -1,7 +1,12 @@
 package ParkingLot.Version3.dto.ParkingSpot;
 
 public class Large extends ParkingSpot {
-    public Large(int floor, int amount) {
-        super(floor, amount);
+    public Large(Integer floor) {
+        super(floor, 50);
+    }
+
+    @Override
+    public int cost(int hours) {
+        return hours * this.getAmount();
     }
 }
