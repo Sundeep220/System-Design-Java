@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 public class StockMarket implements Subject {
-    private Map<String, List<StockObserver>> observers;
-    private Map<String, Double> stockPrices;
+    private final Map<String, List<StockObserver>> observers;
+    private final Map<String, Double> stockPrices;
 
     public StockMarket() {
         observers = new HashMap<>();
@@ -30,7 +30,7 @@ public class StockMarket implements Subject {
     }
 
     public void subscribe(String stock, StockObserver observer) {
-        // Checks if the stock is already tracked by observer
+        // Checks if observer already tracks the stock
         observers.putIfAbsent(stock, new ArrayList<>());
 
         // Adds observer to the stock observer list
