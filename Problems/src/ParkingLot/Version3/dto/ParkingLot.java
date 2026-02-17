@@ -3,18 +3,16 @@ package ParkingLot.Version3.dto;
 import ParkingLot.Version3.dto.ParkingSpot.ParkingSpot;
 import ParkingLot.Version3.enums.ParkingSpotEnum;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ParkingLot {
     private String name;
     private List<EntrancePanel> entrancePanels;
     private List<ExitPanel> exitPanels;
     private DisplayBoard displayBoard;
-    private Map<ParkingSpotEnum, List<ParkingSpot>> freeparkingSpots;
-    private Map<ParkingSpotEnum, List<ParkingSpot>> occupiedParkingSpots;
+    private Map<ParkingSpotEnum, NavigableSet<ParkingSpot>> freeparkingSpots;
+    private Map<ParkingSpotEnum, Set<ParkingSpot>> occupiedParkingSpots;
+
 
     private static ParkingLot parkingLot;
 
@@ -33,13 +31,14 @@ public class ParkingLot {
         this.freeparkingSpots = new HashMap<>();
         this.occupiedParkingSpots = new HashMap<>();
 
-        freeparkingSpots.put(ParkingSpotEnum.MINI, new ArrayList<>());
-        freeparkingSpots.put(ParkingSpotEnum.COMPACT, new ArrayList<>());
-        freeparkingSpots.put(ParkingSpotEnum.LARGE, new ArrayList<>());
+        freeparkingSpots.put(ParkingSpotEnum.MINI, new TreeSet<>());
+        freeparkingSpots.put(ParkingSpotEnum.COMPACT, new TreeSet<>());
+        freeparkingSpots.put(ParkingSpotEnum.LARGE, new TreeSet<>());
 
-        occupiedParkingSpots.put(ParkingSpotEnum.MINI, new ArrayList<>());
-        occupiedParkingSpots.put(ParkingSpotEnum.COMPACT, new ArrayList<>());
-        occupiedParkingSpots.put(ParkingSpotEnum.LARGE, new ArrayList<>());
+        occupiedParkingSpots.put(ParkingSpotEnum.MINI, new HashSet<>());
+        occupiedParkingSpots.put(ParkingSpotEnum.COMPACT, new HashSet<>());
+        occupiedParkingSpots.put(ParkingSpotEnum.LARGE, new HashSet<>());
+
     }
 
     public String getName() {
@@ -82,19 +81,19 @@ public class ParkingLot {
         ParkingLot.parkingLot = parkingLot;
     }
 
-    public Map<ParkingSpotEnum, List<ParkingSpot>> getFreeparkingSpots() {
+    public Map<ParkingSpotEnum, NavigableSet<ParkingSpot>> getFreeparkingSpots() {
         return freeparkingSpots;
     }
 
-    public void setFreeparkingSpots(Map<ParkingSpotEnum, List<ParkingSpot>> freeparkingSpots) {
+    public void setFreeparkingSpots(Map<ParkingSpotEnum, NavigableSet<ParkingSpot>> freeparkingSpots) {
         this.freeparkingSpots = freeparkingSpots;
     }
 
-    public Map<ParkingSpotEnum, List<ParkingSpot>> getOccupiedParkingSpots() {
+    public Map<ParkingSpotEnum, Set<ParkingSpot>> getOccupiedParkingSpots() {
         return occupiedParkingSpots;
     }
 
-    public void setOccupiedParkingSpots(Map<ParkingSpotEnum, List<ParkingSpot>> occupiedParkingSpots) {
+    public void setOccupiedParkingSpots(Map<ParkingSpotEnum, Set<ParkingSpot>> occupiedParkingSpots) {
         this.occupiedParkingSpots = occupiedParkingSpots;
     }
 }

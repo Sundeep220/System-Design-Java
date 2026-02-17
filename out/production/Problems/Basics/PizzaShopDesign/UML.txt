@@ -1,0 +1,57 @@
+                           <<interface>>
+                             Pizza
+                    -----------------------
+                    + getDescription(): String
+                    + getCost(): double
+                             ▲
+                             │  implements
+         ---------------------------------------------
+         │                                           │
+   Margherita                                 Farmhouse
+         ▲                                           ▲
+         │  creates                                   │  creates
+         │                                            │
+  ---------------------                     ---------------------
+  | IndianPizzaFactory |                     | ItalianPizzaFactory |
+  ---------------------                     ---------------------
+              ▲                                          ▲
+              │  implements                              │  implements
+              └───────────────┬──────────────────────────┘
+                              │
+                     <<interface>>
+                     PizzaFactory
+                     + createMargherita()
+                     + createFarmhouse()
+
+
+
+                         <<abstract>>
+                      PizzaDecorator
+                    ---------------------
+                    - pizza : Pizza
+                    ---------------------
+                    + getDescription()
+                    + getCost()
+                            ▲
+                            │ extends
+            ----------------------------------
+            │                                │
+       ExtraCheese                      Jalapeno
+            │                                │
+            └────────── wraps ────────────────┘
+                         (has-a Pizza)
+
+
+
+                      Order
+                 ------------------
+                 - pizzas: List<Pizza>
+                 - totalCost
+                 ------------------
+                          ▲
+                          │ built by
+                   OrderBuilder
+                 ------------------
+                 + addPizza()
+                 + applyCoupon()
+                 + build()

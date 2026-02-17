@@ -9,7 +9,6 @@ import ParkingLot.Version3.dto.Vehicle.Vehicle;
 import ParkingLot.Version3.enums.ParkingEventType;
 import ParkingLot.Version3.enums.ParkingSpotEnum;
 import ParkingLot.Version3.expections.InvalidTicketException;
-import ParkingLot.Version3.expections.SportNotFoundException;
 import ParkingLot.Version3.interfaces.DisplayService;
 import ParkingLot.Version3.interfaces.Observer;
 import ParkingLot.Version3.interfaces.ParkingService;
@@ -17,6 +16,8 @@ import ParkingLot.Version3.parkingStrategy.Strategy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.Set;
 
 public class ParkingServiceImpl implements ParkingService {
     Strategy parkingStrategy;
@@ -35,8 +36,8 @@ public class ParkingServiceImpl implements ParkingService {
     @Override
     public ParkingTicket entry(Vehicle vehicle) {
         ParkingSpotEnum parkingSpotEnum = vehicle.getParkingSpotEnum();
-        List<ParkingSpot> freeparkingSpots = parkingLot.getFreeparkingSpots().get(parkingSpotEnum);
-        List<ParkingSpot> occupiedParkingSpots = parkingLot.getOccupiedParkingSpots().get(parkingSpotEnum);
+        NavigableSet<ParkingSpot> freeparkingSpots = parkingLot.getFreeparkingSpots().get(parkingSpotEnum);
+        Set<ParkingSpot> occupiedParkingSpots = parkingLot.getOccupiedParkingSpots().get(parkingSpotEnum);
         try{
             ParkingSpot parkingSpot = parkingStrategy.findParkingSpot(parkingSpotEnum);
             if(parkingSpot.isFree()){
@@ -85,7 +86,13 @@ public class ParkingServiceImpl implements ParkingService {
             int amount = parkingSpot.getAmount();
             parkingSpot.setFree(true);
             parkingLot.getOccupiedParkingSpots().get(vehicle.getParkingSpotEnum()).remove(parkingSpot);
-            addParkingSportInFreeList(parkingLot.getFreeparkingSpots().get(vehicle.getParkingSpotEnum()), parkingSpot);
+
+            // add it back to free list
+            parkingLot.getFreeparkingSpots()
+                    .get(vehicle.getParkingSpotEnum())
+                    .add(parkingSpot);  // O(log n)
+
+//            addParkingSportInFreeList(parkingLot.getFreeparkingSpots().get(vehicle.getParkingSpotEnum()), parkingSpot);
 
             ParkingEvent event = new ParkingEvent(ParkingEventType.EXIT, vehicle.getParkingSpotEnum());
             notifyObservers(event);

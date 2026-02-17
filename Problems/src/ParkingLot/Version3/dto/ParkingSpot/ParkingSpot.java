@@ -2,7 +2,7 @@ package ParkingLot.Version3.dto.ParkingSpot;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class ParkingSpot {
+public abstract class ParkingSpot implements Comparable<ParkingSpot> {
     private static final AtomicInteger counter = new AtomicInteger(0);
     private int id;
     private boolean isFree;
@@ -17,6 +17,14 @@ public abstract class ParkingSpot {
         this.amount = amount;
         this.id = counter.incrementAndGet();
         this.isFree = true;
+    }
+
+    @Override
+    public int compareTo(ParkingSpot other) {
+        if (this.floor != other.floor) {
+            return this.floor - other.floor;
+        }
+        return this.id - other.id;
     }
 
     public int getId() {
