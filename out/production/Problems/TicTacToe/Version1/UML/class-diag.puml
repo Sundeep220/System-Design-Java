@@ -1,0 +1,80 @@
+@startuml
+
+class Symbol {
+    - value: String
+    + Symbol(value: String)
+    + getValue(): String
+}
+
+class Player {
+    - name: String
+    - symbol: Symbol
+    + Player(name: String, symbol: Symbol)
+    + getName(): String
+    + getSymbol(): Symbol
+}
+
+class Cell {
+    - row: int
+    - col: int
+    - player: Player
+    + Cell(row: int, col: int)
+    + isEmpty(): boolean
+    + setPlayer(player: Player): void
+    + getPlayer(): Player
+}
+
+class Board {
+    - size: int
+    - grid: List<List<Cell>>
+    + Board(size: int)
+    + getSize(): int
+    + getCell(row: int, col: int): Cell
+    + isFull(): boolean
+}
+
+interface WinningStrategy {
+    + checkWinner(board: Board, player: Player, row: int, col: int): boolean
+}
+
+class DefaultWinningStrategy {
+    + checkWinner(board: Board, player: Player, row: int, col: int): boolean
+}
+
+class Game {
+    - board: Board
+    - players: List<Player>
+    - winningStrategy: WinningStrategy
+    - currentPlayerIndex: int
+    - status: GameStatus
+    - winner: Player
+    + Game(board: Board, players: List<Player>, strategy: WinningStrategy)
+    + makeMove(row: int, col: int): void
+    + getStatus(): GameStatus
+    + getWinner(): Player
+    + getBoard(): Board
+    + getCurrentPlayer(): Player
+}
+
+class ConsoleDisplay {
+    + printBoard(board: Board): void
+}
+
+enum GameStatus {
+    IN_PROGRESS
+    DRAW
+    WIN
+}
+
+' Relationships
+
+Player --> Symbol
+Board --> Cell
+Game --> Board
+Game --> Player
+Game --> WinningStrategy
+DefaultWinningStrategy ..|> WinningStrategy
+Game --> GameStatus
+ConsoleDisplay --> Board
+
+@enduml
