@@ -62,10 +62,10 @@ public class DebtSimplifier {
 
             // If any balance remains, put back into their respective queues
             if (updatedDebtor < -0.01) {
-                debtors.add(new AbstractMap.SimpleEntry<>(debtor.getKey(), updatedDebtor));  // AbstractMap.SimpleEntry is a Map.Entry implementation, as Map.Entry is an interface and AbstractMap.SimpleEntry is a concrete class
+                debtors.add(new HashMap.SimpleEntry<>(debtor.getKey(), updatedDebtor));  // AbstractMap.SimpleEntry is a Map.Entry implementation, as Map.Entry is an interface and AbstractMap.SimpleEntry is a concrete class
             }
             if (updatedCreditor > 0.01) {
-                creditors.add(new AbstractMap.SimpleEntry<>(creditor.getKey(), updatedCreditor));
+                creditors.add(new HashMap.SimpleEntry<>(creditor.getKey(), updatedCreditor));
             }
         }
 

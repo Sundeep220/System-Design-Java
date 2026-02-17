@@ -1,0 +1,144 @@
+@startuml
+
+class ParkingLot{
+    - parkingSpots: List<ParkingSpot>
+    - entrances: List<Entrance>
+    - exits: List<Exit>
+    - displayBoard: DisplayBoard
+    - freeParkingSpots: Map<ParkingSpotEnum, TreeSet<ParkingSpot>>
+    - occupiedParkingSpots: Map<ParkingSpotEnum, Set<ParkingSpot>>
+}
+
+class DisplayBoard{
+    - availableSpots: Map<ParkingSpotEnum, Integer>
+}
+
+class ParkingTicket {
+    - ticketId: Integer
+    - vehicle: Vehicle
+    - spot: ParkingSpot
+    - entryTime: Time
+    + getParkingHours(hours: Time) : int
+
+}
+
+enum ParkingSpotEnum{
+    + COMPACT,
+    + MINI,
+    + LARGE
+}
+
+abstract class ParkingSpot implements Comparable<ParkingSpot>{
+    - spotId: AtomicInteger
+    - isAvailable: boolean
+    - type: ParkingSpotEnum
+    - floor: int
+    - amount: int
+    - compareTo(other: ParkingSpot): int
+}
+
+class Compact extends ParkingSpot
+class Mini extends ParkingSpot
+class Large extends ParkingSpot
+
+
+'=================================Vehicle
+abstract class Vehicle{
+    - vehicleId: String
+    - type: ParkingSpotEnum
+}
+
+class Car extends Vehicle
+class Bike extends Vehicle
+class Truck extends Vehicle
+
+'===========================================
+
+class Entrance{
+    + name: String
+}
+
+class Exit{
+    + name: String
+}
+
+'========================= Accounts
+
+class Account {
+    - name: String
+    - email: String
+    - phoneNumber: String
+    - address: String
+}
+
+class Admin extends Account{
+    - parkingLot: ParkingLot
+}
+
+abstract class PaymentMethod{
+   + initiatePayment(int amount): void
+}
+
+class Cash extends PaymentMethod
+
+class Card extends PaymentMethod{
+    - cardNum: String
+    - cvv: int
+}
+
+class ParkingAttendant extends Account{
+}
+
+interface ParkingStrategy{
+    + findParkingSpot(type: ParkingSpotEnum): ParkingSpot
+}
+
+class NearestParkingStrategy implements ParkingStrategy
+class FarthestParkingStrategy implements ParkingStrategy
+
+interface DisplayService {
+    + update(type: ParkingSpotEnum, change: int)
+}
+
+interface ParkingService {
+    - strategy: ParkingStrategy
+    - displayService: DisplayService
+    - parkingLot: ParkingLot
+    + park(vehicle: Vehicle): ParkingTicket
+    + unpark(ticket: ParkingTicket, vehicle: Vehicle): void
+}
+
+interface ParkingSpotService {
+    - displayBoard: DisplayBoard
+   + create(type: ParkingSpotEnum, floor: Integer): ParkingSpot
+}
+
+interface PaymentService {
+    + acceptCash(amount: int): void
+    + acceptCard(cardNum: String, cvv: int, amount: int): void
+}
+
+
+'================Relationships
+ParkingSpot --> ParkingSpotEnum
+ParkingLot *-- Entrance
+ParkingLot *-- Exit
+ParkingLot "1" *-- "1" DisplayBoard
+ParkingLot "1" *-- "*" ParkingSpot : has-a
+Admin o-- ParkingLot : manages
+
+ParkingTicket --> ParkingSpot : has-a
+ParkingTicket --> Vehicle : has-a
+
+ParkingService --> ParkingLot : has-a
+ParkingService --> ParkingStrategy : uses
+ParkingService --> DisplayBoard : uses
+
+DisplayService --> DisplayBoard : has-a
+
+ParkingSpotService --> DisplayBoard : has-a
+
+PaymentService --> PaymentMethod: uses
+
+
+@enduml
