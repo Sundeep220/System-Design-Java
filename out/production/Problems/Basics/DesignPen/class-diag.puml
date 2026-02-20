@@ -1,0 +1,20 @@
+@startuml
+
+class Pen{
+    - brand : String
+    - name: String
+    - type: PenType
+    + write(): void
+    + refill(): void
+}
+
+enum PenType{
+    GEL,
+    BALL,
+    FOUNTAIN
+}
+
+Pen --> PenType
+
+
+@enduml

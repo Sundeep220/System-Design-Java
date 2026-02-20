@@ -37,7 +37,7 @@ interface WinningStrategy {
     + checkWinner(board: Board, player: Player, row: int, col: int): boolean
 }
 
-class DefaultWinningStrategy {
+class DefaultWinningStrategy implements WinningStrategy {
     + checkWinner(board: Board, player: Player, row: int, col: int): boolean
 }
 
@@ -68,13 +68,14 @@ enum GameStatus {
 
 ' Relationships
 
-Player --> Symbol
-Board --> Cell
-Game --> Board
-Game --> Player
-Game --> WinningStrategy
-DefaultWinningStrategy ..|> WinningStrategy
-Game --> GameStatus
-ConsoleDisplay --> Board
+Player --> Symbol : has
+Board --> Cell : consistsOf
+Game --> Board : has
+Game --> Player : consistsOf
+Game --> WinningStrategy : uses
+'DefaultWinningStrategy ..|> WinningStrategy  either this or use implements
+Game *-- GameStatus : has
+ConsoleDisplay --> Board : has
+Cell --> Player : has
 
 @enduml
