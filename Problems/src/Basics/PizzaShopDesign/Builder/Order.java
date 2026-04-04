@@ -34,9 +34,7 @@ public class Order {
         System.out.println("----- ORDER SUMMARY -----");
 
         for (Pizza pizza : pizzas) {
-            System.out.println(
-                    pizza.getDescription() + " = ₹" + pizza.getCost()
-            );
+            System.out.println(pizza.getClass().getSimpleName() + " - " + pizza.getDescription() + " = ₹" + pizza.getCost());
         }
 
         System.out.println("--------------------------");

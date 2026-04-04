@@ -16,6 +16,7 @@ public class Main {
         Pizza pizza1 = factory.createMargherita();
         pizza1 = new ExtraCheese(pizza1);
         pizza1 = new Jalapeno(pizza1);
+        Pizza extraCheeseWithJalapenoFarmhouse = new Jalapeno(new ExtraCheese(factory.createFarmhouse()));
 
         Pizza pizza2 = factory.createFarmhouse();
         pizza2 = new ExtraCheese(pizza2);
@@ -23,6 +24,7 @@ public class Main {
         Order order = new Order.Builder()
                 .addPizza(pizza1)
                 .addPizza(pizza2)
+                .addPizza(extraCheeseWithJalapenoFarmhouse)
                 .build();
 
         order.printSummary();
