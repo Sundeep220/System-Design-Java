@@ -10,6 +10,8 @@ import java.util.List;
 
 public class LoggerBuilder {
 
+    private static Logger instance;
+
     private LogLevel logLevel = LogLevel.INFO; // default
     private final List<Appender> appenders = new ArrayList<>();
 
@@ -30,11 +32,13 @@ public class LoggerBuilder {
         return this;
     }
 
-    public Logger build() {
-        if (appenders.isEmpty()) {
-            throw new IllegalStateException("At least one appender must be configured");
+    public synchronized Logger build() {
+        if (instance == null) {
+            if (appenders.isEmpty()) {
+                throw new IllegalStateException("At least one appender must be configured");
+            }
+            instance = new DefaultLogger(logLevel, appenders);
         }
-
-        return new DefaultLogger(logLevel, appenders);
+        return instance;
     }
 }

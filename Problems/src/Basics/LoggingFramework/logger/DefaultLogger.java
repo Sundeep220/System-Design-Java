@@ -43,7 +43,7 @@ public class DefaultLogger implements Logger {
     private void log(LogLevel level, String message) {
 
         // Level filtering
-        if (!level.isGreaterOrEqual(currentLevel)) {
+        if (level.isLessSevereThan(currentLevel)) {
             return;
         }
 
@@ -63,7 +63,7 @@ public class DefaultLogger implements Logger {
 
     void internalLog(LogRecord record) {
 
-        if (!record.getLevel().isGreaterOrEqual(currentLevel)) {
+        if (record.getLevel().isLessSevereThan(currentLevel)) {
             return;
         }
 

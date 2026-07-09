@@ -18,3 +18,23 @@
 2026-02-28T13:17:05.509749900Z [INFO] [Worker-3] Logging from thread: Worker-3
 2026-02-28T13:17:05.509749900Z [INFO] [Worker-3] Logging from thread: Worker-3
 2026-02-28T13:17:05.509749900Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.829518500Z [DEBUG] [main] Debug message
+2026-07-09T14:40:29.829518500Z [INFO] [main] Application started
+2026-07-09T14:40:29.829518500Z [WARN] [main] This is a warning
+2026-07-09T14:40:29.829518500Z [ERROR] [main] Something went wrong
+2026-07-09T14:40:29.829518500Z [FATAL] [main] Fatal error occurred
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-2] Logging from thread: Worker-2
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-2] Logging from thread: Worker-2
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-1] Logging from thread: Worker-1
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-2] Logging from thread: Worker-2
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-2] Logging from thread: Worker-2
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-1] Logging from thread: Worker-1
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-2] Logging from thread: Worker-2
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-1] Logging from thread: Worker-1
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-1] Logging from thread: Worker-1
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-3] Logging from thread: Worker-3
+2026-07-09T14:40:29.832369200Z [INFO] [Worker-1] Logging from thread: Worker-1

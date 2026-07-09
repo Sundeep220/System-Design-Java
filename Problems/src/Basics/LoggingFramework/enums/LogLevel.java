@@ -18,7 +18,7 @@ public enum LogLevel {
         return priority;
     }
 
-    public boolean isGreaterOrEqual(LogLevel other) {
-        return this.priority >= other.priority;
+    public boolean isLessSevereThan(LogLevel other) {
+        return this.priority < other.priority;
     }
 }
