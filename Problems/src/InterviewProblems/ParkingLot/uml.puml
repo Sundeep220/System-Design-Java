@@ -1,0 +1,75 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+
+'=========================
+'      ENUMS
+'=========================
+
+enum VehicleType {
+    MOTORCYCLE
+    CAR
+    BUS
+}
+
+enum SpotType {
+    MOTORCYCLE
+    COMPACT
+    LARGE
+}
+
+'=========================
+'      VEHICLES
+'=========================
+
+abstract class Vehicle {
+    - licensePlate : String
+    - spotsNeeded : int
+    - vehicleType : VehicleType
+
+    + getSpotsNeeded() : int
+    + getVehicleType() : VehicleType
+}
+
+class Motorcycle
+class Car
+class Bus
+
+Vehicle <|-- Motorcycle
+Vehicle <|-- Car
+Vehicle <|-- Bus
+
+'=========================
+'      PARKING
+'=========================
+
+class ParkingLot {
+    - levels : List<Level>
+
+    + parkVehicle(vehicle : Vehicle) : boolean
+}
+
+class Level {
+    - floorNumber : int
+    - spots : List<ParkingSpot>
+
+    + parkVehicle(vehicle : Vehicle) : boolean
+}
+
+class ParkingSpot {
+    - spotNumber : int
+    - row : int
+    - spotType : SpotType
+    - vehicle : Vehicle
+
+    + canFitVehicle(vehicle : Vehicle) : boolean
+    + park(vehicle : Vehicle) : boolean
+    + removeVehicle()
+    + isAvailable() : boolean
+}
+
+ParkingLot "1" *-- "*" Level
+Level "1" *-- "*" ParkingSpot
+ParkingSpot "0..1" --> Vehicle : occupied by
+
+@enduml
