@@ -21,7 +21,7 @@ public class MaxFreeFloorStrategy implements ParkingStrategy {
             }
 
             int freeSpots =
-                    floor.getFreeSpotsCount(vehicle.getVehicleType());
+                    floor.getFreeSpotsCount(vehicle.vehicleType());
 
             if (freeSpots > maxFreeSpots) {
 

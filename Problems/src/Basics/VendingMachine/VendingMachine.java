@@ -43,14 +43,15 @@ public class VendingMachine {
             return transaction;
         }
 
-        transaction.setStatus(TransactionStatus.PAYMENT_SUCCESS);
-
         boolean deducted = inventory.deductMultiple(cart.getItems());
 
         if (!deducted) {
             transaction.setStatus(TransactionStatus.FAILED);
             return transaction;
         }
+
+        transaction.setStatus(TransactionStatus.PAYMENT_SUCCESS);
+
 
         transaction.setStatus(TransactionStatus.COMPLETED);
         dispense(cart);

@@ -50,13 +50,13 @@ public class ParkingSpot {
 
     private boolean isCompatible(Vehicle vehicle) {
 
-        if (vehicle.getVehicleType() == VehicleType.TWO_WHEELER &&
-                spotType == SpotType.TWO_WHEELER) {
+        if (VehicleType.TWO_WHEELER == vehicle.vehicleType() &&
+                SpotType.TWO_WHEELER == spotType) {
             return true;
         }
 
-        if (vehicle.getVehicleType() == VehicleType.FOUR_WHEELER &&
-                spotType == SpotType.FOUR_WHEELER) {
+        if (VehicleType.FOUR_WHEELER == vehicle.vehicleType() &&
+                SpotType.FOUR_WHEELER == spotType) {
             return true;
         }
 

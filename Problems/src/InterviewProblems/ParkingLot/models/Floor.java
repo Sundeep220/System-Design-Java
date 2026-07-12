@@ -3,10 +3,7 @@ package InterviewProblems.ParkingLot.models;
 import InterviewProblems.ParkingLot.enums.SpotType;
 import InterviewProblems.ParkingLot.enums.VehicleType;
 
-import java.util.Map;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Floor {
 
@@ -29,8 +26,6 @@ public class Floor {
         int rows = layout.length;
         int cols = layout[0].length;
 
-
-
         spots = new ParkingSpot[rows][cols];
         spotMap = new HashMap<>();
 
@@ -47,9 +42,9 @@ public class Floor {
                 spots[row][col] = spot;
                 spotMap.put(spotId, spot);
 
-                if (spotType == SpotType.TWO_WHEELER) {
+                if (SpotType.TWO_WHEELER == spotType) {
                     freeTwoWheelerSpots++;
-                } else if (spotType == SpotType.FOUR_WHEELER) {
+                } else if (SpotType.FOUR_WHEELER == spotType) {
                     freeFourWheelerSpots++;
                 }
             }
@@ -69,7 +64,7 @@ public class Floor {
 
     public boolean hasAvailableSpot(Vehicle vehicle) {
 
-        if (vehicle.getVehicleType() == VehicleType.TWO_WHEELER) {
+        if (vehicle.vehicleType() == VehicleType.TWO_WHEELER) {
             return freeTwoWheelerSpots > 0;
         }
 
@@ -97,8 +92,10 @@ public class Floor {
         return spotMap.get(spotId);
     }
 
-    public ParkingSpot[][] getSpots() {
-        return spots;
+    public List<List<ParkingSpot>> getSpots() {
+        return Arrays.stream(spots)
+                .map(row -> Collections.unmodifiableList(Arrays.asList(row)))
+                .toList();
     }
 
     public int getFloorNumber() {
@@ -107,7 +104,7 @@ public class Floor {
 
     public int getFreeSpotsCount(VehicleType type) {
 
-        if (type == VehicleType.TWO_WHEELER) {
+        if (VehicleType.TWO_WHEELER == type) {
             return freeTwoWheelerSpots;
         }
 
@@ -116,7 +113,7 @@ public class Floor {
 
     public void decrementFreeSpot(VehicleType type) {
 
-        if (type == VehicleType.TWO_WHEELER) {
+        if (VehicleType.TWO_WHEELER == type) {
             freeTwoWheelerSpots--;
         } else {
             freeFourWheelerSpots--;
@@ -125,7 +122,7 @@ public class Floor {
 
     public void incrementFreeSpot(VehicleType type) {
 
-        if (type == VehicleType.TWO_WHEELER) {
+        if (VehicleType.TWO_WHEELER == type) {
             freeTwoWheelerSpots++;
         } else {
             freeFourWheelerSpots++;
