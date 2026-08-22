@@ -58,58 +58,30 @@ A better mental model is:
 
 At a high level:
 
-```text
-             Java Source Code
-                    |
-                    | javac
-                    v
-              .class files
-              Java Bytecode
-                    |
-                    v
-        +-------------------------+
-        |           JVM           |
-        |                         |
-        |  Class Loader           |
-        |       |                 |
-        |       v                 |
-        |  Runtime Data Areas     |
-        |                         |
-        |  +-------------------+  |
-        |  | Heap              |  |
-        |  +-------------------+  |
-        |                         |
-        |  +-------------------+  |
-        |  | Java Stack        |  |
-        |  +-------------------+  |
-        |                         |
-        |  +-------------------+  |
-        |  | Metaspace         |  |
-        |  +-------------------+  |
-        |                         |
-        |  Execution Engine      |
-        |     |                  |
-        |     +--> Interpreter   |
-        |     +--> JIT Compiler  |
-        |     +--> GC            |
-        +-------------------------+
-                    |
-                    v
-                 OS / CPU
+```mermaid
+graph TD
+    JSC[Java Source Code] -->|javac| CF[.class files<br/>Java Bytecode]
+    CF --> JVM[JVM]
+    JVM --> CL[Class Loader]
+    JVM --> RDA[Runtime Data Areas]
+    JVM --> EE[Execution Engine]
+    RDA --> H[Heap]
+    RDA --> JS[Java Stack]
+    RDA --> M[Metaspace]
+    EE --> I[Interpreter]
+    EE --> JIT[JIT Compiler]
+    EE --> GC[GC]
+    JVM --> OSC[OS / CPU]
 ```
 
 There are **four major pieces** you should initially remember:
 
-```text
-JVM
-│
-├── Class Loader Subsystem
-│
-├── Runtime Data Areas
-│
-├── Execution Engine
-│
-└── Native Interface / Native Libraries
+```mermaid
+graph TD
+    JVM[JVM] --> CL[Class Loader Subsystem]
+    JVM --> RDA[Runtime Data Areas]
+    JVM --> EE[Execution Engine]
+    JVM --> NI[Native Interface / Native Libraries]
 ```
 
 Let's understand each.
@@ -139,45 +111,32 @@ You don't immediately get machine code.
 
 You get:
 
-```text
-Hello.java
-    |
-    | javac
-    v
-Hello.class
+```mermaid
+graph TD
+    HJ[Hello.java] -->|javac| HC[Hello.class]
 ```
 
 Inside `Hello.class` is **bytecode**.
 
 Something conceptually like:
 
-```text
-Java source
-    ↓
-Java bytecode
-    ↓
-JVM
-    ↓
-Machine instructions
-    ↓
-CPU
+```mermaid
+graph TD
+    JS[Java source] --> JB[Java bytecode]
+    JB --> JVM[JVM]
+    JVM --> MI[Machine instructions]
+    MI --> CPU[CPU]
 ```
 
 This is fundamentally different from languages where compilation directly targets a particular machine architecture.
 
 For example:
 
-```text
-Java
-    Hello.java
-       ↓
-    javac
-       ↓
-    bytecode
-       ↓
-    JVM
-       ↓
-    x86 / ARM machine code
+```mermaid
+graph TD
+    HJ2[Hello.java] -->|javac| BC[bytecode]
+    BC --> JVM2[JVM]
+    JVM2 --> MC[x86 / ARM machine code]
 ```
 
 Therefore the famous idea:
@@ -188,16 +147,14 @@ comes primarily from the fact that Java bytecode can run on different JVM implem
 
 For example:
 
-```text
-                Java Bytecode
-                     |
-        +------------+------------+
-        |            |            |
-        v            v            v
-      JVM x86      JVM ARM      JVM ARM
-        |            |            |
-        v            v            v
-      Linux        Linux        macOS
+```mermaid
+graph TD
+    JB2[Java Bytecode] --> JVMX[JVM x86]
+    JB2 --> JVMA1[JVM ARM]
+    JB2 --> JVMA2[JVM ARM]
+    JVMX --> L1[Linux]
+    JVMA1 --> L2[Linux]
+    JVMA2 --> M[macOS]
 ```
 
 The JVM abstracts the underlying hardware/OS.
@@ -214,32 +171,16 @@ java Hello
 
 A simplified sequence is:
 
-```text
-java Hello
-   |
-   v
-JVM starts
-   |
-   v
-Class Loader finds Hello.class
-   |
-   v
-Bytecode loaded into JVM
-   |
-   v
-Classes verified
-   |
-   v
-Static structures initialized
-   |
-   v
-main() found
-   |
-   v
-main() starts executing
-   |
-   v
-Execution Engine executes bytecode
+```mermaid
+graph TD
+    JH[java Hello] --> JS[JVM starts]
+    JS --> CLF[Class Loader finds Hello.class]
+    CLF --> BL[Bytecode loaded into JVM]
+    BL --> CV[Classes verified]
+    CV --> SSI[Static structures initialized]
+    SSI --> MF[main found]
+    MF --> MSE[main starts executing]
+    MSE --> EEE[Execution Engine executes bytecode]
 ```
 
 Now the important question:
@@ -250,12 +191,10 @@ Not necessarily.
 
 There are primarily two execution approaches:
 
-```text
-Bytecode
-   |
-   +----> Interpreter
-   |
-   +----> JIT Compiler
+```mermaid
+graph TD
+    BC[Bytecode] --> I[Interpreter]
+    BC --> JIT[JIT Compiler]
 ```
 
 We'll study JIT deeply later.
@@ -266,36 +205,22 @@ We'll study JIT deeply later.
 
 Let's expand the architecture.
 
-```text
-                       JVM
-                        |
-        +---------------+---------------+
-        |               |               |
-        v               v               v
- Class Loader     Runtime Data      Execution Engine
-                  Areas
-        |               |               |
-        |               |               +---- Interpreter
-        |               |               |
-        |               |               +---- JIT
-        |               |               |
-        |               |               +---- GC
-        |               |
-        |               +---- Heap
-        |               |
-        |               +---- Java Stacks
-        |               |
-        |               +---- Metaspace
-        |               |
-        |               +---- PC Registers
-        |               |
-        |               +---- Native Method Stacks
-        |
-        +---- Bootstrap
-        |
-        +---- Platform
-        |
-        +---- Application
+```mermaid
+graph TD
+    JVM[JVM] --> CL[Class Loader]
+    JVM --> RDA[Runtime Data Areas]
+    JVM --> EE[Execution Engine]
+    CL --> B[Bootstrap]
+    CL --> P[Platform]
+    CL --> A[Application]
+    RDA --> H[Heap]
+    RDA --> JS[Java Stacks]
+    RDA --> M[Metaspace]
+    RDA --> PCR[PC Registers]
+    RDA --> NMS[Native Method Stacks]
+    EE --> I[Interpreter]
+    EE --> JIT[JIT]
+    EE --> GC[GC]
 ```
 
 Let's take them individually.
@@ -325,14 +250,10 @@ This is the job of the **Class Loader subsystem**.
 
 Conceptually:
 
-```text
-UserService.class
-       |
-       v
- Class Loader
-       |
-       v
- JVM memory
+```mermaid
+graph TD
+    UC[UserService.class] --> CL2[Class Loader]
+    CL2 --> JM[JVM memory]
 ```
 
 We'll later go very deep into:
@@ -371,18 +292,13 @@ The JVM needs memory to execute your application.
 
 The runtime memory can be thought of as:
 
-```text
-JVM Memory
-│
-├── Heap
-│
-├── Thread Stacks
-│
-├── Metaspace
-│
-├── PC Register
-│
-└── Native Method Stack
+```mermaid
+graph TD
+    JM[JVM Memory] --> H2[Heap]
+    JM --> TS[Thread Stacks]
+    JM --> M2[Metaspace]
+    JM --> PC2[PC Register]
+    JM --> NMS2[Native Method Stack]
 ```
 
 But there is an important distinction.
@@ -391,37 +307,34 @@ Some areas are:
 
 ### Shared across threads
 
-```text
-Heap
-Metaspace
+```mermaid
+graph TD
+    SM[Shared Memory] --> H3[Heap]
+    SM --> M3[Metaspace]
 ```
 
 while others are:
 
 ### Per-thread
 
-```text
-Java Stack
-PC Register
-Native Method Stack
+```mermaid
+graph TD
+    PTM[Per-thread Memory] --> JS2[Java Stack]
+    PTM --> PC3[PC Register]
+    PTM --> NMS3[Native Method Stack]
 ```
 
 Visualize:
 
-```text
-                 JVM
-                  |
-        +---------+---------+
-        |                   |
-        v                   v
-   Shared Memory       Per Thread Memory
-        |                   |
-   +----+----+         +----+----+
-   |         |         |         |
-  Heap   Metaspace    Stack     PC
-                         |
-                         |
-                    Thread-specific
+```mermaid
+graph TD
+    JVM2[JVM] --> SM2[Shared Memory]
+    JVM2 --> PTM2[Per Thread Memory]
+    SM2 --> H4[Heap]
+    SM2 --> M4[Metaspace]
+    PTM2 --> ST[Stack]
+    PTM2 --> PC4[PC]
+    PTM2 --> TS2[Thread-specific]
 ```
 
 This distinction is **extremely important**.
@@ -440,24 +353,22 @@ User user = new User();
 
 The object:
 
-```text
-new User()
+```mermaid
+graph TD
+    NU[new User]
 ```
 
 is allocated on the heap.
 
 Conceptually:
 
-```text
-Heap
-+------------------------------+
-|                              |
-|   User object                |
-|                              |
-|   name -> "Sundeep"           |
-|   age  -> 24                 |
-|                              |
-+------------------------------+
+```mermaid
+graph LR
+    subgraph Heap
+        UO[User object]
+        UO --> N[name = Sundeep]
+        UO --> A[age = 24]
+    end
 ```
 
 The variable:
@@ -472,14 +383,13 @@ The actual object is in the heap.
 
 We'll later go extremely deep into:
 
-```text
-Heap
- ├── Young Generation
- │    ├── Eden
- │    ├── Survivor 0
- │    └── Survivor 1
- │
- └── Old Generation
+```mermaid
+graph TD
+    H5[Heap] --> YG[Young Generation]
+    YG --> E[Eden]
+    YG --> S0[Survivor 0]
+    YG --> S1[Survivor 1]
+    H5 --> OG[Old Generation]
 ```
 
 And then:
@@ -519,33 +429,30 @@ static void calculate() {
 
 When `main()` executes:
 
-```text
-Thread
-  |
-  v
-Stack
-  |
-  +---- main() frame
+```mermaid
+graph TD
+    T[Thread] --> S[Stack]
+    S --> MF[main frame]
 ```
 
 When `calculate()` is called:
 
-```text
-Stack
-+----------------------+
-| calculate() frame    |
-+----------------------+
-| main() frame         |
-+----------------------+
+```mermaid
+graph LR
+    subgraph Stack
+        CF2[calculate frame]
+        MF2[main frame]
+    end
+    CF2 --> MF2
 ```
 
 When `calculate()` finishes:
 
-```text
-Stack
-+----------------------+
-| main() frame         |
-+----------------------+
+```mermaid
+graph LR
+    subgraph Stack
+        MF3[main frame]
+    end
 ```
 
 This is why the stack behaves approximately like:
@@ -558,13 +465,12 @@ Each method invocation gets a **stack frame**.
 
 A frame contains information such as:
 
-```text
-Stack Frame
-│
-├── Local variables
-├── Operand stack
-├── Reference to runtime constant pool
-└── Return information
+```mermaid
+graph TD
+    SF[Stack Frame] --> LV[Local variables]
+    SF --> OS[Operand stack]
+    SF --> RCP[Reference to runtime constant pool]
+    SF --> RI[Return information]
 ```
 
 This is very important for understanding:
@@ -595,17 +501,10 @@ User user = new User();
 
 You can conceptually think:
 
-```text
-Stack
-+----------------+
-| user reference | --------+
-+----------------+          |
-                            |
-                            v
-                         Heap
-                    +-------------+
-                    | User object |
-                    +-------------+
+```mermaid
+graph LR
+    S[Stack] -->|user reference| H[Heap]
+    H --> UO[User object]
 ```
 
 But modern JVMs can optimize allocations.
@@ -644,11 +543,9 @@ Metaspace stores JVM metadata associated with loaded classes.
 
 Think:
 
-```text
-Class metadata
-      |
-      v
-Metaspace
+```mermaid
+graph TD
+    CM[Class metadata] --> MS[Metaspace]
 ```
 
 For example, if your application loads:
@@ -709,12 +606,10 @@ It conceptually tracks:
 
 Imagine:
 
-```text
-Thread
-  |
-  +---- PC
-  |
-  +---- Stack
+```mermaid
+graph TD
+    T[Thread] --> PC[PC]
+    T --> S[Stack]
 ```
 
 If bytecode execution is currently around:
@@ -783,47 +678,43 @@ Java source code is **not directly machine code**.
 
 It goes roughly like:
 
-```text
-Java source
-    ↓
-javac
-    ↓
-Bytecode (.class)
-    ↓
-JVM
-    ↓
-Machine instructions
-    ↓
-CPU
+```mermaid
+graph TD
+    JS[Java source] --> J[javac]
+    J --> BC[Bytecode (.class)]
+    BC --> JVM[JVM]
+    JVM --> MI[Machine instructions]
+    MI --> CPU[CPU]
 ```
 
 Java bytecode looks conceptually like:
 
-```text
-iload_1
-iload_2
-iadd
-ireturn
+```mermaid
+graph TD
+    I1[iload_1] --> I2[iload_2]
+    I2 --> IA[iadd]
+    IA --> IR[ireturn]
 ```
 
 This bytecode is platform-independent.
 
 Native code, on the other hand, is something like CPU instructions:
 
-```text
-MOV
-ADD
-RET
+```mermaid
+graph TD
+    MOV[MOV] --> ADD[ADD]
+    ADD --> RET[RET]
 ```
 
 The exact instructions depend on the CPU architecture.
 
 For example:
 
-```text
-x86-64 native code
-ARM64 native code
-RISC-V native code
+```mermaid
+graph TD
+    NC[Native code examples] --> X86[x86-64]
+    NC --> ARM[ARM64]
+    NC --> RV[RISC-V]
 ```
 
 So:
@@ -840,14 +731,12 @@ The JVM primarily executes **Java bytecode**, but it can also **invoke native ma
 
 For example:
 
-```text
-                 JVM
-                  |
-        ┌─────────┴──────────┐
-        ↓                    ↓
- Java bytecode          Native code
-        ↓                    ↓
-   JVM execution       CPU execution
+```mermaid
+graph TD
+    JVM[JVM] --> JB[Java bytecode]
+    JVM --> NC[Native code]
+    JB --> JE[JVM execution]
+    NC --> CE[CPU execution]
 ```
 
 The JVM provides mechanisms for Java code to interact with native code.
@@ -913,22 +802,12 @@ demo.sayHello();
 
 The flow becomes:
 
-```text
-Java
-  |
-  | demo.sayHello()
-  ↓
-JVM
-  |
-  | JNI
-  ↓
-Native library
-  |
-  ↓
-Machine code
-  |
-  ↓
-CPU
+```mermaid
+graph TD
+    Java[Java] -->|demo.sayHello| JVM2[JVM]
+    JVM2 -->|JNI| NL[Native library]
+    NL --> MC[Machine code]
+    MC --> CPU2[CPU]
 ```
 
 ---
@@ -1116,14 +995,11 @@ native void sayHello();
 
 and a C/C++ implementation.
 
-```text
-Java
- ↓
-JNI
- ↓
-C/C++ native library
- ↓
-CPU
+```mermaid
+graph TD
+    Java[Java] --> JNI[JNI]
+    JNI --> CCNL[C/C++ native library]
+    CCNL --> CPU[CPU]
 ```
 
 Here the native code was compiled separately.
@@ -1184,22 +1060,18 @@ That's because native code operates outside the normal Java safety model.
 
 For example:
 
-```text
-Java exception
-    ↓
-JVM handles it
+```mermaid
+graph TD
+    JE[Java exception] --> JH[JVM handles it]
 ```
 
 But:
 
-```text
-Native code
-    ↓
-invalid memory access
-    ↓
-SIGSEGV
-    ↓
-JVM process crashes
+```mermaid
+graph TD
+    NC2[Native code] --> IMA[invalid memory access]
+    IMA --> SIG[SIGSEGV]
+    SIG --> JPC[JVM process crashes]
 ```
 
 This is why you can see:
@@ -1289,7 +1161,7 @@ Modern JVM execution is more like:
                      ↓
                   Bytecode
                      ↓
-              ┌──────┴──────┐
+              split->
               ↓             ↓
          Interpreter       JIT
               ↓             ↓
@@ -1300,26 +1172,20 @@ Modern JVM execution is more like:
 
 And simultaneously:
 
-```text
-Java application
-       ↓
-      JVM
-       ↓
-Native JVM implementation
-       ↓
-Operating System
+```mermaid
+graph TD
+    JA[Java application] --> JVM2[JVM]
+    JVM2 --> NJI[Native JVM implementation]
+    NJI --> OS[Operating System]
 ```
 
 And potentially:
 
-```text
-Java
- ↓
-JNI
- ↓
-Native C/C++ library
- ↓
-CPU / OS
+```mermaid
+graph TD
+    Java2[Java] --> JNI2[JNI]
+    JNI2 --> NCL[Native C/C++ library]
+    NCL --> COS[CPU / OS]
 ```
 
 So when you hear **"native code" in JVM discussions**, always ask:
@@ -1366,17 +1232,12 @@ That's the **Execution Engine**.
 
 Conceptually:
 
-```text
-Bytecode
-   |
-   v
-Execution Engine
-   |
-   +---- Interpreter
-   |
-   +---- JIT Compiler
-   |
-   +---- Garbage Collector
+```mermaid
+graph TD
+    BC3[Bytecode] --> EE[Execution Engine]
+    EE --> I3[Interpreter]
+    EE --> JIT3[JIT Compiler]
+    EE --> GC2[Garbage Collector]
 ```
 
 Let's understand the first two.
@@ -1427,24 +1288,14 @@ Instead of repeatedly interpreting hot code, JVM can compile it into native mach
 
 Conceptually:
 
-```text
-Java Bytecode
-     |
-     v
-Interpreter
-     |
-     | identify frequently executed code
-     v
-  Hot code
-     |
-     v
-JIT Compiler
-     |
-     v
-Machine Code
-     |
-     v
-CPU
+```mermaid
+graph TD
+    BC4[Java Bytecode] --> I4[Interpreter]
+    I4 --> IF[identify frequently executed code]
+    IF --> HC[Hot code]
+    HC --> JIT4[JIT Compiler]
+    JIT4 --> MC[Machine Code]
+    MC --> CPU3[CPU]
 ```
 
 For example:
@@ -1518,20 +1369,12 @@ The GC eventually reclaims its memory.
 
 Conceptually:
 
-```text
-Application
-     |
-     v
-creates objects
-     |
-     v
-Heap fills
-     |
-     v
-GC identifies unreachable objects
-     |
-     v
-memory reclaimed
+```mermaid
+graph TD
+    App[Application] --> CO[creates objects]
+    CO --> HF[Heap fills]
+    HF --> GCI[GC identifies unreachable objects]
+    GCI --> MR[memory reclaimed]
 ```
 
 But GC is **much more complicated** than:
@@ -1605,53 +1448,31 @@ Conceptually:
 
 Meanwhile:
 
-```text
-User.class
-   |
-   v
-Class Loader
-   |
-   v
-Class metadata
-   |
-   v
-Metaspace
+```mermaid
+graph TD
+    UC2[User.class] --> CL5[Class Loader]
+    CL5 --> CM5[Class metadata]
+    CM5 --> MS5[Metaspace]
 ```
 
 And execution:
 
-```text
-Bytecode
-   |
-   v
-Interpreter
-   |
-   v
-Hot code detection
-   |
-   v
-JIT
-   |
-   v
-Native machine code
-   |
-   v
-CPU
+```mermaid
+graph TD
+    BC5[Bytecode] --> I5[Interpreter]
+    I5 --> HCD[Hot code detection]
+    HCD --> JIT5[JIT]
+    JIT5 --> NMC5[Native machine code]
+    NMC5 --> CPU5[CPU]
 ```
 
 And eventually:
 
-```text
-Heap
-  |
-  v
-Objects become unreachable
-  |
-  v
-GC
-  |
-  v
-Memory reclaimed
+```mermaid
+graph TD
+    H6[Heap] --> OU[Objects become unreachable]
+    OU --> GC5[GC]
+    GC5 --> MR5[Memory reclaimed]
 ```
 
 ---
@@ -1707,19 +1528,21 @@ Memorize this.
 
 ### Shared
 
-```text
-Heap
-Metaspace
+```mermaid
+graph TD
+    SM5[Shared] --> H7[Heap]
+    SM5 --> M5[Metaspace]
 ```
 
 Multiple threads can access objects in the heap.
 
 ### Per-thread
 
-```text
-Java Stack
-PC Register
-Native Method Stack
+```mermaid
+graph TD
+    PT5[Per-thread] --> JS5[Java Stack]
+    PT5 --> PC5[PC Register]
+    PT5 --> NMS5[Native Method Stack]
 ```
 
 For example:

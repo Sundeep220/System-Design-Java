@@ -116,20 +116,12 @@ The application starts requesting those objects from the origin database/applica
 
 This can create a cache-miss storm:
 
-```text
-Millions of keys remapped
-          |
-          v
-Millions of cache misses
-          |
-          v
-Origin servers receive huge traffic
-          |
-          v
-Database / application becomes overloaded
-          |
-          v
-Potential outage
+```mermaid
+graph TD
+    MKR[Millions of keys remapped] --> CMM[Millions of cache misses]
+    CMM --> OT[Origin servers receive huge traffic]
+    OT --> OL[Database / application becomes overloaded]
+    OL --> PO[Potential outage]
 ```
 
 This is one of the major motivations for consistent hashing.
@@ -140,26 +132,18 @@ This is one of the major motivations for consistent hashing.
 
 We want the following behavior:
 
-```text
-Add one server
-      |
-      v
-Only some keys move
-      |
-      v
-Most keys stay where they are
+```mermaid
+graph TD
+    AS[Add one server] --> OSM[Only some keys move]
+    OSM --> MKS[Most keys stay where they are]
 ```
 
 Similarly:
 
-```text
-Remove one server
-      |
-      v
-Only that server's keys move
-      |
-      v
-Other mappings remain unchanged
+```mermaid
+graph TD
+    RS[Remove one server] --> OSKM[Only that server's keys move]
+    OSKM --> OMR[Other mappings remain unchanged]
 ```
 
 This is the key property of consistent hashing.
@@ -808,18 +792,12 @@ So:
 
 This is the complete lookup logic:
 
-```text
-hash key
-   |
-   v
-ceilingEntry(hash)
-   |
-   +---- found ----> return server
-   |
-   +---- null -----> firstEntry()
-                         |
-                         v
-                       server
+```mermaid
+graph TD
+    HK[hash key] --> CE[ceilingEntry hash]
+    CE -->|found| RS[return server]
+    CE -->|null| FE[firstEntry]
+    FE --> SRV[server]
 ```
 
 ---

@@ -42,32 +42,30 @@ There are two fundamentally different things involved.
 
 ### Object
 
-```text
-new User()
+```mermaid
+graph TD
+    A[new User]
 ```
 
 This is an **instance**.
 
 ### Class
 
-```text
-User.class
+```mermaid
+graph TD
+    B[User.class]
 ```
 
 This represents information about the `User` type.
 
 Conceptually:
 
-```text
-                  User
-                   |
-        +----------+----------+
-        |                     |
-        v                     v
-   Class metadata         Instances
-        |                     |
-        v                     v
-   Metaspace                Heap
+```mermaid
+graph TD
+    U[User] --> CM[Class metadata]
+    U --> IN[Instances]
+    CM --> MS[Metaspace]
+    IN --> HP[Heap]
 ```
 
 So:
@@ -555,14 +553,11 @@ Every loaded class requires associated metadata.
 
 Therefore:
 
-```text
-Classes loaded
-      ↓
-Metadata
-      ↓
-Metaspace usage
-      ↓
-Metaspace grows
+```mermaid
+graph TD
+    CL3[Classes loaded] --> MD3[Metadata]
+    MD3 --> MU[Metaspace usage]
+    MU --> MG[Metaspace grows]
 ```
 
 But here's the important part:
@@ -701,16 +696,12 @@ These are additional classes that the JVM needs to load/manage.
 
 Therefore:
 
-```text
-Spring
-  ↓
-Dynamic proxies
-  ↓
-More classes
-  ↓
-More class metadata
-  ↓
-Metaspace usage
+```mermaid
+graph TD
+    S[Spring] --> DP[Dynamic proxies]
+    DP --> MC[More classes]
+    MC --> MCM[More class metadata]
+    MCM --> MU2[Metaspace usage]
 ```
 
 Normally this is completely fine.
@@ -725,20 +716,12 @@ Hibernate can also generate runtime classes/proxies.
 
 Conceptually:
 
-```text
-Hibernate
-    |
-    v
-Proxy generation
-    |
-    v
-Generated classes
-    |
-    v
-ClassLoader
-    |
-    v
-Metaspace
+```mermaid
+graph TD
+    HIB[Hibernate] --> PG[Proxy generation]
+    PG --> GC2[Generated classes]
+    GC2 --> CL4[ClassLoader]
+    CL4 --> MS4[Metaspace]
 ```
 
 This doesn't mean:
@@ -1255,22 +1238,18 @@ You don't need to memorize the implementation details yet.
 
 For interviews, understand:
 
-```text
-Loaded classes
-      ↓
-Class metadata
-      ↓
-Metaspace allocation
+```mermaid
+graph TD
+    LC[Loaded classes] --> CM2[Class metadata]
+    CM2 --> MA[Metaspace allocation]
 ```
 
 And:
 
-```text
-ClassLoader becomes unloadable
-      ↓
-Classes can be unloaded
-      ↓
-Associated metadata can be reclaimed
+```mermaid
+graph TD
+    CLU[ClassLoader becomes unloadable] --> CUL[Classes can be unloaded]
+    CUL --> AMR[Associated metadata can be reclaimed]
 ```
 
 ---
@@ -1464,42 +1443,29 @@ for modern Java.
 
 Conceptually:
 
-```text
-10,000 .class files
-        |
-        v
-ClassLoader
-        |
-        v
-10,000 loaded classes
-        |
-        v
-Class metadata
-        |
-        v
-Metaspace
+```mermaid
+graph TD
+    CF2[10000 .class files] --> CL6[ClassLoader]
+    CL6 --> LC2[10000 loaded classes]
+    LC2 --> CM6[Class metadata]
+    CM6 --> MS6[Metaspace]
 ```
 
 Therefore:
 
-```text
-Class count ↑
-      ↓
-Metadata ↑
-      ↓
-Metaspace ↑
+```mermaid
+graph TD
+    CC[Class count increases] --> MD[Metadata increases]
+    MD --> MSI[Metaspace increases]
 ```
 
 But if classes can later be unloaded:
 
-```text
-ClassLoader becomes unreachable
-      ↓
-Class unloading
-      ↓
-Metadata reclaimed
-      ↓
-Metaspace can decrease/reuse memory
+```mermaid
+graph TD
+    CLR[ClassLoader becomes unreachable] --> CU2[Class unloading]
+    CU2 --> MR2[Metadata reclaimed]
+    MR2 --> MSR[Metaspace can decrease]
 ```
 
 This is the lifecycle you should remember.

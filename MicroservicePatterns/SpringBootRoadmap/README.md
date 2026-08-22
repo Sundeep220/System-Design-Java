@@ -20,44 +20,26 @@ Below is the revised **complete roadmap**.
 
 Think of this as a progression:
 
-```text
-Java
-  ↓
-Backend Fundamentals
-  ↓
-Spring Core
-  ↓
-Spring Boot
-  ↓
-REST/API Engineering
-  ↓
-Database Engineering
-  ↓
-Transactions & Concurrency
-  ↓
-Caching
-  ↓
-Async / Scheduling / Batch
-  ↓
-Search / Filter / Pagination
-  ↓
-Security
-  ↓
-Messaging
-  ↓
-Microservices
-  ↓
-Distributed Systems
-  ↓
-Observability
-  ↓
-Performance
-  ↓
-Production Engineering
-  ↓
-System Design
-  ↓
-Interview Mastery
+```mermaid
+graph TD
+    J[Java] --> BF[Backend Fundamentals]
+    BF --> SC[Spring Core]
+    SC --> SB[Spring Boot]
+    SB --> RE[REST/API Engineering]
+    RE --> DE[Database Engineering]
+    DE --> TC[Transactions & Concurrency]
+    TC --> C[Caching]
+    C --> AS[Async / Scheduling / Batch]
+    AS --> SF[Search / Filter / Pagination]
+    SF --> SEC[Security]
+    SEC --> MSG[Messaging]
+    MSG --> MS[Microservices]
+    MS --> DS[Distributed Systems]
+    DS --> OBS[Observability]
+    OBS --> PERF[Performance]
+    PERF --> PE[Production Engineering]
+    PE --> SD[System Design]
+    SD --> IM[Interview Mastery]
 ```
 
 ---
@@ -598,22 +580,15 @@ Understand the entire bean lifecycle.
 
 Master:
 
-```text
-SpringApplication.run()
-        ↓
-Environment
-        ↓
-ApplicationContext
-        ↓
-Component Scan
-        ↓
-Auto Configuration
-        ↓
-Bean Creation
-        ↓
-Embedded Server
-        ↓
-Application Ready
+```mermaid
+graph TD
+    SAR[SpringApplication.run] --> ENV[Environment]
+    ENV --> AC[ApplicationContext]
+    AC --> CS[Component Scan]
+    CS --> AUTOC[Auto Configuration]
+    AUTOC --> BC[Bean Creation]
+    BC --> ES[Embedded Server]
+    ES --> AR[Application Ready]
 ```
 
 Deep dive:

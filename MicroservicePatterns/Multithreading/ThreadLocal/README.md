@@ -232,7 +232,480 @@ looks up the value in the **current thread's map**.
 
 ---
 
-# 6. Why is the map inside Thread?
+# 6. The confusing part — ThreadLocal as a key
+
+Yes — the confusing part is usually this:
+
+> "If ThreadLocal is shared among threads, how can each thread have a different value?"
+
+The key is: the ThreadLocal object is shared, but the values are NOT stored inside the ThreadLocal object.
+Instead, each Thread has its own ThreadLocalMap, and the ThreadLocal object acts like a key into that map.
+
+## Visualize it like this
+
+Suppose we have:
+
+```java
+ThreadLocal<String> userId = new ThreadLocal<>();
+```
+
+There is one userId object:
+
+```text
+                  ONE shared object
+                ┌──────────────────┐
+                │   ThreadLocal    │
+                │    userId        │
+                └────────┬─────────┘
+                         │
+                used as a KEY
+                         │
+          ┌──────────────┼──────────────┐
+          │              │              │
+          ▼              ▼              ▼
+
+      Thread-1       Thread-2       Thread-3
+   ┌────────────┐  ┌────────────┐  ┌────────────┐
+   │ ThreadLocal│  │ ThreadLocal│  │ ThreadLocal│
+   │    Map     │  │    Map     │  │    Map     │
+   │            │  │            │  │            │
+   │ userId → A │  │ userId → B │  │ userId → C │
+   └────────────┘  └────────────┘  └────────────┘
+```
+
+So the same key exists in three different maps, but each map contains a different value.
+
+### 1. The most important correction
+
+Earlier when we said:
+
+```java
+ThreadLocal<String> userId;
+```
+
+is a key, that's exactly the mental model you should keep.
+
+Think of:
+
+```java
+ThreadLocal<String> userId
+```
+
+as a key object.
+
+It does NOT mean:
+
+```text
+userId
+   ↓
+"123"
+```
+
+Instead, think:
+
+```text
+ThreadLocal userId
+       ↓
+     KEY
+```
+
+And each thread has its own storage:
+
+```text
+Thread-1's storage:
+    userId → "Alice"
+
+Thread-2's storage:
+    userId → "Bob"
+
+Thread-3's storage:
+    userId → "Charlie"
+```
+
+### 2. What actually happens when you call set()
+
+Suppose:
+
+```java
+ThreadLocal<String> userId = new ThreadLocal<>();
+```
+
+Then:
+
+```java
+userId.set("Alice");
+```
+
+Assume this code is running on Thread-1.
+
+Conceptually, Java does something like:
+
+```text
+Current Thread
+     │
+     ▼
+Thread-1
+     │
+     ▼
+ThreadLocalMap
+     │
+     └── userId → "Alice"
+```
+
+Then Thread-2 executes:
+
+```java
+userId.set("Bob");
+```
+
+Java doesn't overwrite Alice.
+
+Why?
+
+Because Thread-2 has a different ThreadLocalMap.
+
+```text
+Thread-1
+   │
+   ▼
+ThreadLocalMap #1
+   │
+   └── userId → "Alice"
+
+
+Thread-2
+   │
+   ▼
+ThreadLocalMap #2
+   │
+   └── userId → "Bob"
+```
+
+The key is the same:
+
+```text
+             SAME KEY
+                │
+       ┌────────┼────────┐
+       ▼        ▼        ▼
+     Map #1   Map #2   Map #3
+       │        │        │
+       ▼        ▼        ▼
+     Alice     Bob     Charlie
+```
+
+That's the entire trick.
+
+### 3. Let's actually look at the Thread object
+
+Conceptually, a Java Thread contains something like:
+
+```java
+class Thread {
+    ThreadLocal.ThreadLocalMap threadLocals;
+    // other stuff...
+}
+```
+
+So:
+
+```text
+Thread-1
+┌─────────────────────────────┐
+│ name = "Thread-1"            │
+│ threadLocals ───────────┐    │
+└─────────────────────────│────┘
+                          ▼
+                  ┌───────────────┐
+                  │ ThreadLocalMap│
+                  ├───────────────┤
+                  │ key → value   │
+                  │               │
+                  │ userId → Alice│
+                  └───────────────┘
+```
+
+And:
+
+```text
+Thread-2
+┌─────────────────────────────┐
+│ name = "Thread-2"            │
+│ threadLocals ───────────┐    │
+└─────────────────────────│────┘
+                          ▼
+                  ┌───────────────┐
+                  │ ThreadLocalMap│
+                  ├───────────────┤
+                  │ key → value   │
+                  │               │
+                  │ userId → Bob  │
+                  └───────────────┘
+```
+
+This is why values are isolated.
+
+### 4. What does get() do?
+
+This becomes very easy once you understand the above.
+
+Suppose:
+
+```java
+ThreadLocal<String> userId = new ThreadLocal<>();
+```
+
+Thread-1:
+
+```java
+userId.set("Alice");
+```
+
+Thread-2:
+
+```java
+userId.set("Bob");
+```
+
+Now Thread-1 executes:
+
+```java
+userId.get();
+```
+
+Conceptually:
+
+```text
+Who is calling get()?
+        │
+        ▼
+    Thread-1
+        │
+        ▼
+Thread-1.threadLocals
+        │
+        ▼
+find the entry whose key == userId
+        │
+        ▼
+     "Alice"
+```
+
+Thread-2:
+
+```java
+userId.get();
+```
+
+becomes:
+
+```text
+Who is calling get()?
+        │
+        ▼
+    Thread-2
+        │
+        ▼
+Thread-2.threadLocals
+        │
+        ▼
+find key == userId
+        │
+        ▼
+      "Bob"
+```
+
+So ThreadLocal doesn't need to know which thread's value to return.
+
+It simply asks:
+
+> "What is the current thread?"
+
+Then it accesses that thread's map.
+
+### 5. Let's look at the actual implementation conceptually
+
+When you do:
+
+```java
+userId.set("Alice");
+```
+
+ThreadLocal.set() is roughly conceptually:
+
+```java
+public void set(T value) {
+    Thread currentThread = Thread.currentThread();
+    ThreadLocalMap map = currentThread.threadLocals;
+    map.set(this, value);
+}
+```
+
+Notice this:
+
+```java
+map.set(this, value);
+```
+
+`this` is the ThreadLocal object.
+
+So:
+
+```text
+ThreadLocal object
+       │
+       │ this
+       ▼
+   acts as KEY
+```
+
+And the current thread determines which map is used.
+
+### 6. That's why multiple ThreadLocals work
+
+You asked about this previously:
+
+```java
+ThreadLocal<String> userId = new ThreadLocal<>();
+ThreadLocal<String> tenantId = new ThreadLocal<>();
+ThreadLocal<String> correlationId = new ThreadLocal<>();
+```
+
+This means you have three different keys.
+
+For Thread-1:
+
+```text
+Thread-1's ThreadLocalMap
+
+┌─────────────────────┬──────────────┐
+│ Key                 │ Value        │
+├─────────────────────┼──────────────┤
+│ userId              │ "Alice"      │
+│ tenantId            │ "Mercedes"   │
+│ correlationId       │ "REQ-123"    │
+└─────────────────────┴──────────────┘
+```
+
+Thread-2:
+
+```text
+Thread-2's ThreadLocalMap
+
+┌─────────────────────┬──────────────┐
+│ Key                 │ Value        │
+├─────────────────────┼──────────────┤
+│ userId              │ "Bob"        │
+│ tenantId            │ "BMW"        │
+│ correlationId       │ "REQ-456"    │
+└─────────────────────┴──────────────┘
+```
+
+Same three ThreadLocal objects.
+Different values.
+
+### 7. Here's the mental model I want you to remember
+
+Don't visualize:
+
+```text
+ThreadLocal
+    ↓
+value
+```
+
+That's the wrong model.
+
+Visualize:
+
+```text
+                 ThreadLocal objects
+                 = KEYS
+                      
+        userId       tenantId      correlationId
+          │             │               │
+          │             │               │
+          ▼             ▼               ▼
+
+Thread-1's ThreadLocalMap
+
+userId       → Alice
+tenantId     → Mercedes
+correlationId → REQ-123
+
+
+Thread-2's ThreadLocalMap
+
+userId       → Bob
+tenantId     → BMW
+correlationId → REQ-456
+```
+
+So there are two dimensions:
+
+```text
+                    KEY
+                     │
+                     ▼
+              ┌─────────────┐
+              │ ThreadLocal │
+              └─────────────┘
+                     │
+                     │
+       ┌─────────────┼─────────────┐
+       ▼             ▼             ▼
+   Thread-1       Thread-2      Thread-3
+      MAP            MAP            MAP
+       │              │              │
+       ▼              ▼              ▼
+    Alice            Bob          Charlie
+```
+
+Thread chooses the map.
+ThreadLocal chooses the entry inside that map.
+
+That's the core mechanism.
+
+### 8. One more important detail: ThreadLocal is not actually "shared state"
+
+When people say:
+
+> "ThreadLocal can be shared between threads."
+
+What they really mean is:
+
+> The same ThreadLocal key/object can be accessible by multiple threads.
+
+The stored values are not shared.
+
+For example:
+
+```java
+static ThreadLocal<String> user = new ThreadLocal<>();
+```
+
+Because it's static, every thread can access the same user object:
+
+```text
+                    static user
+                        │
+             ┌──────────┼──────────┐
+             ▼          ▼          ▼
+         Thread-1    Thread-2    Thread-3
+             │          │          │
+             ▼          ▼          ▼
+          "Alice"      "Bob"    "Charlie"
+```
+
+So:
+
+> Shared key → separate storage → separate value.
+
+If you remember just that sentence, you understand ThreadLocal internally.
+
+---
+
+# 7. Why is the map inside Thread?
 
 This is a clever design.
 

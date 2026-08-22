@@ -160,19 +160,19 @@ This is one of the mechanisms behind plugin architectures.
 
 A `Class` object can expose information about:
 
-```text
-Class
- ├── Name
- ├── Package
- ├── Modifiers
- ├── Superclass
- ├── Interfaces
- ├── Constructors
- ├── Fields
- ├── Methods
- ├── Annotations
- ├── Generic information
- └── Nested classes
+```mermaid
+graph TD
+    C[Class] --> N[Name]
+    C --> P[Package]
+    C --> M[Modifiers]
+    C --> S[Superclass]
+    C --> I[Interfaces]
+    C --> Con[Constructors]
+    C --> F[Fields]
+    C --> Met[Methods]
+    C --> A[Annotations]
+    C --> GI[Generic information]
+    C --> NC[Nested classes]
 ```
 
 For example:
@@ -455,16 +455,12 @@ method.invoke(user);
 
 The flow is:
 
-```text
-User.class
-     ↓
-find method named "login"
-     ↓
-Method object
-     ↓
-invoke()
-     ↓
-user.login()
+```mermaid
+graph TD
+    UC[User.class] --> FM[find method named "login"]
+    FM --> MO[Method object]
+    MO --> INV[invoke]
+    INV --> UL[user.login]
 ```
 
 ---
@@ -552,14 +548,11 @@ Modern Java has additional strong encapsulation/module considerations, so `setAc
 
 But conceptually:
 
-```text
-private
-   ↓
-Reflection
-   ↓
-access check override
-   ↓
-invoke
+```mermaid
+graph TD
+    PR[private] --> R[Reflection]
+    R --> ACO[access check override]
+    ACO --> INV[invoke]
 ```
 
 ---
@@ -602,14 +595,11 @@ new User("Sundeep", 25);
 
 you can dynamically do:
 
-```text
-Class
- ↓
-Constructor
- ↓
-newInstance()
- ↓
-Object
+```mermaid
+graph TD
+    C[Class] --> Con[Constructor]
+    Con --> NI[newInstance]
+    NI --> O[Object]
 ```
 
 ---
@@ -881,16 +871,12 @@ We just built a **tiny dependency injection mechanism**.
 
 That's essentially the conceptual bridge to:
 
-```text
-Spring
-    ↓
-Component scanning
-    ↓
-Reflection
-    ↓
-Bean creation
-    ↓
-Dependency injection
+```mermaid
+graph TD
+    S[Spring] --> CS[Component scanning]
+    CS --> R[Reflection]
+    R --> BC[Bean creation]
+    BC --> DI[Dependency injection]
 ```
 
 Spring's real implementation is vastly more sophisticated, but this gives you the mental model.
@@ -911,20 +897,14 @@ Spring needs to discover this class.
 
 Conceptually:
 
-```text
-Classpath
-    ↓
-Find classes
-    ↓
-Load Class objects
-    ↓
-Inspect annotations
-    ↓
-@Service found
-    ↓
-Create bean
-    ↓
-Store in ApplicationContext
+```mermaid
+graph TD
+    CP[Classpath] --> FC[Find classes]
+    FC --> LCO[Load Class objects]
+    LCO --> IA[Inspect annotations]
+    IA --> SF[@Service found]
+    SF --> CB[Create bean]
+    CB --> SAC[Store in ApplicationContext]
 ```
 
 Then:
@@ -936,16 +916,12 @@ private PaymentService paymentService;
 
 conceptually:
 
-```text
-Find field
-     ↓
-Check @Autowired
-     ↓
-Determine required type
-     ↓
-Find matching bean
-     ↓
-Inject dependency
+```mermaid
+graph TD
+    FF[Find field] --> CA[Check @Autowired]
+    CA --> DRT[Determine required type]
+    DRT --> FMB[Find matching bean]
+    FMB --> ID[Inject dependency]
 ```
 
 Reflection is heavily involved in these kinds of runtime operations, although modern Spring also uses other mechanisms such as generated code and proxies.
@@ -969,14 +945,11 @@ public class User {
 
 Hibernate needs to understand:
 
-```text
-User
- ↓
-@Entity
- ↓
-id → @Id
- ↓
-name → column
+```mermaid
+graph TD
+    U[User] --> E[@Entity]
+    E --> ID[id → @Id]
+    E --> COL[name → column]
 ```
 
 Reflection can inspect:
@@ -995,16 +968,12 @@ Then Hibernate can build metadata describing how the Java class maps to the data
 
 Conceptually:
 
-```text
-Java class
-     ↓
-Reflection
-     ↓
-Annotations + fields
-     ↓
-Entity metadata
-     ↓
-SQL mapping
+```mermaid
+graph TD
+    JC[Java class] --> R2[Reflection]
+    R2 --> AF[Annotations + fields]
+    AF --> EM[Entity metadata]
+    EM --> SQL[SQL mapping]
 ```
 
 ---
@@ -1032,10 +1001,9 @@ And JSON:
 
 Jackson needs to map:
 
-```text
-JSON name
-    ↓
-Java field/property
+```mermaid
+graph TD
+    JN[JSON name] --> JFP[Java field/property]
 ```
 
 Reflection can help inspect fields, constructors, getters/setters, annotations, etc.
@@ -1051,16 +1019,12 @@ Jackson can inspect that annotation and determine the JSON mapping.
 
 Again:
 
-```text
-JSON
- ↓
-Jackson
- ↓
-Class metadata
- ↓
-Reflection / generated accessors
- ↓
-Object
+```mermaid
+graph TD
+    JSON[JSON] --> J[Jackson]
+    J --> CM[Class metadata]
+    CM --> RGA[Reflection / generated accessors]
+    RGA --> O[Object]
 ```
 
 ---
@@ -1144,40 +1108,28 @@ Reflection APIs have different behavior regarding inherited members.
 
 Remember this distinction:
 
-```text
-getMethods()
-       ↓
-public methods
-including inherited methods
-
-getDeclaredMethods()
-       ↓
-methods declared in THIS class
-regardless of visibility
+```mermaid
+graph TD
+    GM[getMethods] --> PM[public methods
+including inherited methods]
+    GDM[getDeclaredMethods] --> DM[methods declared in THIS class
+regardless of visibility]
 ```
 
 Similarly:
 
-```text
-getFields()
-       ↓
-public fields including inherited
-
-getDeclaredFields()
-       ↓
-fields declared in this class
+```mermaid
+graph TD
+    GF[getFields] --> PF[public fields including inherited]
+    GDF2[getDeclaredFields] --> DF2[fields declared in this class]
 ```
 
 For constructors:
 
-```text
-getConstructors()
-       ↓
-public constructors
-
-getDeclaredConstructors()
-       ↓
-all constructors declared in class
+```mermaid
+graph TD
+    GC[getConstructors] --> PC[public constructors]
+    GDC[getDeclaredConstructors] --> ADC[all constructors declared in class]
 ```
 
 ---
@@ -1294,14 +1246,10 @@ List<User>
 
 This distinction matters.
 
-```text
-getType()
-     ↓
-raw runtime class
-
-getGenericType()
-     ↓
-generic type metadata
+```mermaid
+graph TD
+    GT[getType] --> RRC[raw runtime class]
+    GGT[getGenericType] --> GTM[generic type metadata]
 ```
 
 ---
@@ -1355,34 +1303,25 @@ Class.forName("com.example.User");
 
 the JVM may:
 
-```text
-Class name
-    ↓
-ClassLoader
-    ↓
-Load .class
-    ↓
-Link
-    ↓
-Initialize
-    ↓
-Class object
+```mermaid
+graph TD
+    CN[Class name] --> CL[ClassLoader]
+    CL --> LC[Load .class]
+    LC --> Link[Link]
+    Link --> Init[Initialize]
+    Init --> CO[Class object]
 ```
 
 This is why reflection is strongly connected to the JVM topics you're studying.
 
 The rough relationship is:
 
-```text
-.class file
-     ↓
-ClassLoader
-     ↓
-JVM
-     ↓
-Class object
-     ↓
-Reflection API
+```mermaid
+graph TD
+    CF[.class file] --> CL[ClassLoader]
+    CL --> JVM[JVM]
+    JVM --> CO[Class object]
+    CO --> RA[Reflection API]
 ```
 
 ---
@@ -1400,9 +1339,9 @@ user.login();
 
 The compiler knows:
 
-```text
-User
-login()
+```mermaid
+graph TD
+    U[User] --> L[login]
 ```
 
 Reflection:
@@ -1418,9 +1357,9 @@ method.invoke(object);
 
 The compiler may know only:
 
-```text
-className = String
-methodName = String
+```mermaid
+graph TD
+    CN2[className = String] --> MN[methodName = String]
 ```
 
 The actual class/method can be determined **at runtime**.
@@ -1454,13 +1393,11 @@ Applications can load implementations dynamically.
 
 Example:
 
-```text
-PaymentProcessor
-       ↑
-       |
------------------------
-|          |          |
-Stripe    PayPal     Razorpay
+```mermaid
+graph BT
+    PP[PaymentProcessor] --> Stripe[Stripe]
+    PP --> PayPal[PayPal]
+    PP --> Razorpay[Razorpay]
 ```
 
 Configuration could specify:
@@ -1755,22 +1692,19 @@ public class ReflectionDemo {
 
 Conceptually:
 
-```text
-                 User.class
-                     │
-       ┌─────────────┼──────────────┐
-       ↓             ↓              ↓
-    Fields      Constructors      Methods
-       │             │              │
-       ↓             ↓              ↓
-  Field object   Constructor      Method
-                     │              │
-                     ↓              ↓
-               newInstance()     invoke()
-                     │              │
-                     └──────┬───────┘
-                            ↓
-                         Object
+```mermaid
+graph TD
+    UC[User.class] --> F[Fields]
+    UC --> C[Constructors]
+    UC --> M[Methods]
+    F --> FO[Field object]
+    C --> CO2[Constructor]
+    M --> MO[Method]
+    CO2 --> NI[newInstance]
+    MO --> INV[invoke]
+    FO --> O[Object]
+    NI --> O
+    INV --> O
 ```
 
 ---
@@ -1839,8 +1773,9 @@ This distinction is important as you progress.
 
 Mostly:
 
-```text
-Runtime
+```mermaid
+graph TD
+    R[Runtime]
 ```
 
 Example:
@@ -1853,8 +1788,9 @@ method.isAnnotationPresent(MyAnnotation.class)
 
 Mostly:
 
-```text
-Compile time
+```mermaid
+graph TD
+    CP[Compile time]
 ```
 
 An annotation processor can inspect source/code metadata and generate code during compilation.
@@ -1880,57 +1816,33 @@ Rather:
 
 You should remember this pipeline:
 
-```text
-                    COMPILE TIME
-                         │
-                         ↓
-                    .class file
-                         │
-                         ↓
-                    CLASS LOADING
-                         │
-                         ↓
-                       JVM
-                         │
-                         ↓
-                    Class object
-                         │
-             ┌───────────┼────────────┐
-             ↓           ↓            ↓
-           Fields      Methods    Constructors
-             │           │            │
-             └───────────┼────────────┘
-                         ↓
-                    Reflection
-                         │
-              ┌──────────┼───────────┐
-              ↓          ↓           ↓
-           inspect      invoke      create
-              │          │           │
-              └──────────┼───────────┘
-                         ↓
-                      Runtime
+```mermaid
+graph TD
+    CT[COMPILE TIME] --> CF[.class file]
+    CF --> CL[CLASS LOADING]
+    CL --> JVM[JVM]
+    JVM --> CO[Class object]
+    CO --> F[Fields]
+    CO --> M[Methods]
+    CO --> C[Constructors]
+    CO --> R[Reflection]
+    R --> INS[inspect]
+    R --> INV[invoke]
+    R --> CR[create]
+    R --> RUN[Runtime]
 ```
 
 And the framework connection:
 
-```text
-Spring Boot
-    │
-    ├── Classpath scanning
-    │
-    ├── Class metadata
-    │
-    ├── Annotations
-    │
-    ├── Reflection
-    │
-    ├── Proxies
-    │
-    └── Generated infrastructure
-              │
-              ↓
-        Application behavior
+```mermaid
+graph TD
+    SB[Spring Boot] --> CS[Classpath scanning]
+    SB --> CM[Class metadata]
+    SB --> A[Annotations]
+    SB --> R[Reflection]
+    SB --> P[Proxies]
+    SB --> GI[Generated infrastructure]
+    GI --> AB[Application behavior]
 ```
 
 ---
@@ -1997,16 +1909,12 @@ Object create(String className)
 
 which:
 
-```text
-class name
-    ↓
-Class.forName()
-    ↓
-constructor
-    ↓
-newInstance()
-    ↓
-object
+```mermaid
+graph TD
+    CN[class name] --> CFN[Class.forName]
+    CFN --> CON[constructor]
+    CON --> NI[newInstance]
+    NI --> OBJ[object]
 ```
 
 ### Exercise 3 — Annotation-based command runner
@@ -2048,16 +1956,12 @@ void testAddition() {}
 
 Then build your own test runner:
 
-```text
-Find @Test methods
-       ↓
-Create test object
-       ↓
-Invoke methods
-       ↓
-Capture exceptions
-       ↓
-Report PASS/FAIL
+```mermaid
+graph TD
+    FTM[Find @Test methods] --> CTO[Create test object]
+    CTO --> IM[Invoke methods]
+    IM --> CE[Capture exceptions]
+    CE --> RPF[Report PASS/FAIL]
 ```
 
 If you can build those five, you don't just "know Reflection"—you'll understand **why Spring/JUnit/Hibernate are architected the way they are**.
@@ -2104,14 +2008,11 @@ That's the whole point of `final`.
 
 For an **instance final field**, Java's normal rules are essentially:
 
-```text
-Object creation
-      ↓
-constructor
-      ↓
-final field initialized
-      ↓
-final field should not be reassigned
+```mermaid
+graph TD
+    OC[Object creation] --> CON[constructor]
+    CON --> FFI[final field initialized]
+    FFI --> FFR[final field should not be reassigned]
 ```
 
 At the JVM bytecode level, ordinary instance-final writes are restricted to the constructor (`<init>`). ([OpenJDK][2])
@@ -2155,16 +2056,11 @@ field.set(user, "Rahul");
 
 So:
 
-```text
-Before:
-
-final field
-    ↓
-setAccessible(true)
-    ↓
-Field.set(...)
-    ↓
-value changed
+```mermaid
+graph TD
+    FF[final field] --> SA[setAccessible(true)]
+    SA --> FS[Field.set(...)]
+    FS --> VC[value changed]
 ```
 
 This was called **deep reflective mutation of final fields**.
@@ -2259,14 +2155,11 @@ Historically, serialization frameworks could create an object and then populate 
 
 Conceptually:
 
-```text
-Serialized data
-      ↓
-Create object
-      ↓
-Set fields reflectively
-      ↓
-Object reconstructed
+```mermaid
+graph TD
+    SD[Serialized data] --> CO[Create object]
+    CO --> SFR[Set fields reflectively]
+    SFR --> OR[Object reconstructed]
 ```
 
 That's one reason Java historically tolerated this capability.
@@ -2297,26 +2190,17 @@ But reflection says:
 
 That creates a conflict.
 
-```text
-Java language:
-
-final
- ↓
-should not change
-
-
-Reflection:
-
-final
- ↓
-actually can change
-
-
-JVM/JIT:
-
-Can I trust final?
- ↓
-Not completely
+```mermaid
+graph TD
+    subgraph JavaLanguage
+        JL1[final] --> JL2[should not change]
+    end
+    subgraph Reflection
+        R1[final] --> R2[actually can change]
+    end
+    subgraph JVMJIT
+        J1[Can I trust final?] --> J2[Not completely]
+    end
 ```
 
 OpenJDK explicitly identifies this as a problem for both **correctness and optimization**. ([OpenJDK][1])
@@ -2356,20 +2240,17 @@ That's particularly problematic because final fields have special semantics arou
 
 So Java wants:
 
-```text
-final
- ↓
-TRUST ME
+```mermaid
+graph TD
+    F1[final] --> TM[TRUST ME]
 ```
 
 rather than:
 
-```text
-final
- ↓
-maybe final
- ↓
-unless reflection changes it
+```mermaid
+graph TD
+    F2[final] --> MF[maybe final]
+    MF --> UR[unless reflection changes it]
 ```
 
 ---
@@ -2410,12 +2291,10 @@ Starting in JDK 26, Java introduces restrictions around reflective mutation of f
 
 The default behavior initially is:
 
-```text
-Attempt to mutate final field
-             ↓
-       mutation occurs
-             +
-          WARNING
+```mermaid
+graph TD
+    AM[Attempt to mutate final field] --> MC[mutation occurs]
+    MC --> W[WARNING]
 ```
 
 rather than immediately:
@@ -2426,10 +2305,9 @@ Exception
 
 The long-term plan is:
 
-```text
-Attempt to mutate final field
-             ↓
-        IllegalAccessException
+```mermaid
+graph TD
+    AM2[Attempt to mutate final field] --> IAE[IllegalAccessException]
 ```
 
 by default.
@@ -2444,36 +2322,30 @@ Because there are potentially many existing libraries doing this.
 
 Imagine:
 
-```text
-Your application
-      ↓
-Jackson
-      ↓
-Some serialization library
-      ↓
-Reflection
-      ↓
-final field mutation
+```mermaid
+graph TD
+    YA[Your application] --> J[Jackson]
+    J --> SSL[Some serialization library]
+    SSL --> R[Reflection]
+    R --> FFM[final field mutation]
 ```
 
 If Java suddenly broke all of that, applications could fail after upgrading the JDK.
 
 So the migration strategy is:
 
-```text
-Older Java
-     ↓
-mutation allowed
-
-JDK 26
-     ↓
-mutation restricted
-     ↓
-warning by default
-
-Future JDK
-     ↓
-mutation denied by default
+```mermaid
+graph TD
+    subgraph Older
+        OJ[Older Java] --> MA[mutation allowed]
+    end
+    subgraph JDK26
+        J26[JDK 26] --> MR[mutation restricted]
+        MR --> WB[warning by default]
+    end
+    subgraph Future
+        FJ[Future JDK] --> MD[mutation denied by default]
+    end
 ```
 
 This gives libraries time to stop depending on the old behavior. ([OpenJDK][1])
@@ -2562,17 +2434,13 @@ could be enough.
 
 New model:
 
-```text
-setAccessible(true)
-       ↓
-Does caller have access?
-       ↓
-YES
-       ↓
-Is final-field mutation enabled?
-       ↓
-YES → mutation allowed
-NO  → illegal mutation
+```mermaid
+graph TD
+    SA[setAccessible(true)] --> DCA[Does caller have access?]
+    DCA --> YES[YES]
+    YES --> IFM[Is final-field mutation enabled?]
+    IFM --> Y[YES → mutation allowed]
+    IFM --> N[NO → illegal mutation]
 ```
 
 So:
@@ -2688,20 +2556,16 @@ Similarly, final fields declared in hidden classes are treated as non-modifiable
 
 So the special cases are important:
 
-```text
-final field
-   │
-   ├── ordinary instance final
-   │       └── historically reflectively mutable
-   │
-   ├── static final
-   │       └── non-modifiable
-   │
-   ├── record final
-   │       └── non-modifiable
-   │
-   └── hidden class final
-           └── non-modifiable
+```mermaid
+graph TD
+    FF[final field] --> OIF[ordinary instance final]
+    FF --> SF[static final]
+    FF --> RF[record final]
+    FF --> HCF[hidden class final]
+    OIF --> HRM[historically reflectively mutable]
+    SF --> NM1[non-modifiable]
+    RF --> NM2[non-modifiable]
+    HCF --> NM3[non-modifiable]
 ```
 
 ([Oracle Docs][3])
@@ -2726,20 +2590,14 @@ That's not a good mental model.
 
 A better model is:
 
-```text
-Reflection
-    ↓
-Requests privileged runtime access
-    ↓
-JVM checks access rules
-    ↓
-Module rules
-    ↓
-Class/package openness
-    ↓
-Special restrictions
-    ↓
-Operation allowed/denied
+```mermaid
+graph TD
+    R[Reflection] --> RPR[Requests privileged runtime access]
+    RPR --> JVM[JVM checks access rules]
+    JVM --> MR[Module rules]
+    MR --> CPO[Class/package openness]
+    CPO --> SR[Special restrictions]
+    SR --> OAD[Operation allowed/denied]
 ```
 
 Reflection is powerful, but the JVM still controls what ultimately happens.
@@ -2768,27 +2626,16 @@ That's the answer I'd expect from someone preparing for a senior Java/Spring int
 
 # 18. The timeline to remember
 
-```text
-                 FINAL FIELD MUTATION
-                         │
-                         ↓
-        ┌─────────────────────────────────┐
-        │                                 │
-   Java ≤ 25                         JDK 26
-        │                                 │
-        ↓                                 ↓
-Many ordinary final             Restricted by default
-instance fields                 + warning
-could be changed                │
-via deep reflection             ↓
-        │                    Explicit opt-in
-        │                    possible
-        │                                 │
-        └────────────────┬────────────────┘
-                         ↓
-                  Future direction
-                         ↓
-                Denied by default
+```mermaid
+graph TD
+    FFM[FINAL FIELD MUTATION] --> J25[Java ≤ 25]
+    FFM --> J26[JDK 26]
+    J25 --> OFC[Many ordinary final instance fields could be changed via deep reflection]
+    J26 --> RB[Restricted by default + warning]
+    RB --> EO[Explicit opt-in possible]
+    OFC --> FD[Future direction]
+    EO --> FD
+    FD --> DD[Denied by default]
 ```
 
 JEP 500 describes this explicitly as a gradual transition toward making `final` mean final by default. ([OpenJDK][1])
@@ -2839,14 +2686,11 @@ For an ordinary final instance field:
 
 Conceptually:
 
-```text
-getDeclaredField()
-       ↓
-setAccessible(true)
-       ↓
-Field.set()
-       ↓
-Can mutate final instance field
+```mermaid
+graph TD
+    GD[getDeclaredField] --> SA[setAccessible(true)]
+    SA --> FS[Field.set]
+    FS --> M[Can mutate final instance field]
 ```
 
 subject to Java's access/module rules. ([Oracle Docs][3])
@@ -2855,18 +2699,13 @@ subject to Java's access/module rules. ([Oracle Docs][3])
 
 Conceptually:
 
-```text
-getDeclaredField()
-       ↓
-setAccessible(true)
-       ↓
-Field.set()
-       ↓
-Is final-field mutation enabled?
-       │
-       ├── YES → allowed
-       │
-       └── NO  → illegal/restricted
+```mermaid
+graph TD
+    GD2[getDeclaredField] --> SA2[setAccessible(true)]
+    SA2 --> FS2[Field.set]
+    FS2 --> IFM[Is final-field mutation enabled?]
+    IFM --> YA[YES → allowed]
+    IFM --> NA[NO → illegal/restricted]
 ```
 
 with JDK 26's default behavior being a warning while the transition proceeds. ([OpenJDK][1])

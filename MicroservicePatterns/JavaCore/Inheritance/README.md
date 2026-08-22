@@ -36,13 +36,12 @@ class ElectricVehicle extends Vehicle {
 
 We have:
 
-```text
-Vehicle
-   ↑
-   │ extends
-   │
-ElectricVehicle
+```mermaid
+graph BT
+    EV[ElectricVehicle] -->|extends| V[Vehicle]
 ```
+
+> The arrow points from child to parent, emphasizing that the child specializes the parent.
 
 `ElectricVehicle` is a specialized form of `Vehicle`.
 
@@ -97,29 +96,26 @@ start()
 
 Inheritance lets us put common behavior in one place:
 
-```text
-             Vehicle
-          /           \
-         /             \
-ElectricVehicle    PetrolVehicle
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
 ```
 
 Shared behavior:
 
-```text
-Vehicle
- ├── brand
- └── start()
+```mermaid
+graph TD
+    V[Vehicle] --> brand[brand]
+    V --> start[start]
 ```
 
 Specialized behavior:
 
-```text
-ElectricVehicle
- └── batteryCapacity
-
-PetrolVehicle
- └── fuelCapacity
+```mermaid
+graph TD
+    EV[ElectricVehicle] --> batteryCapacity[batteryCapacity]
+    PV[PetrolVehicle] --> fuelCapacity[fuelCapacity]
 ```
 
 ---
@@ -169,15 +165,13 @@ It **extends** it.
 
 Conceptually:
 
-```text
-ElectricVehicle
-│
-├── inherited from Vehicle
-│   ├── brand
-│   └── start()
-│
-└── its own
-    └── batteryCapacity
+```mermaid
+graph TD
+    EV[ElectricVehicle] --> inherited[inherited from Vehicle]
+    EV --> own[its own]
+    inherited --> brand[brand]
+    inherited --> start[start]
+    own --> batteryCapacity[batteryCapacity]
 ```
 
 So:
@@ -202,19 +196,27 @@ Ask:
 
 If yes, inheritance may make sense.
 
-```text
-ElectricVehicle IS-A Vehicle
-Car            IS-A Vehicle
-Dog            IS-A Animal
-Manager        IS-A Employee
+```mermaid
+graph LR
+    EV[ElectricVehicle] -->|IS-A| V[Vehicle]
+    C[Car] -->|IS-A| V2[Vehicle]
+    D[Dog] -->|IS-A| A[Animal]
+    M[Manager] -->|IS-A| E[Employee]
 ```
 
 But:
 
-```text
-Car IS-A Engine ❌
-Car HAS-A Engine ✅
+```mermaid
+graph TD
+    subgraph Inheritance
+        C2[Car] -->|IS-A ❌| E[Engine]
+    end
+    subgraph Composition
+        C3[Car] -->|HAS-A ✅| E2[Engine]
+    end
 ```
+
+> Inheritance describes a taxonomic relationship; composition describes ownership or use.
 
 So:
 
@@ -311,12 +313,10 @@ Because `private` means:
 
 So:
 
-```text
-Vehicle
- └── private brand
-       ↑
-       │
-       └── accessible directly only inside Vehicle
+```mermaid
+graph TD
+    V[Vehicle] --> PB[private brand]
+    PB -.->|accessible directly only inside| V
 ```
 
 This is one reason encapsulation and inheritance need to be understood together.
@@ -538,12 +538,10 @@ Because the parent part must be initialized before the child part.
 
 Conceptually:
 
-```text
-new ElectricVehicle()
-        ↓
-Vehicle constructor
-        ↓
-ElectricVehicle constructor
+```mermaid
+graph TD
+    NE[new ElectricVehicle] --> VC[Vehicle constructor]
+    VC --> EV[ElectricVehicle constructor]
 ```
 
 ---
@@ -646,21 +644,12 @@ new ElectricVehicle("Mercedes");
 
 results in:
 
-```text
-             new ElectricVehicle()
-                      │
-                      ↓
-              ElectricVehicle()
-                      │
-                      │ super()
-                      ↓
-                 Vehicle()
-                      │
-                      ↓
-              Parent initialized
-                      │
-                      ↓
-              Child initialized
+```mermaid
+graph TD
+    NE[new ElectricVehicle] --> EV2[ElectricVehicle]
+    EV2 -->|super| V2[Vehicle]
+    V2 --> PI[Parent initialized]
+    PI --> CI[Child initialized]
 ```
 
 ---
@@ -985,11 +974,9 @@ Vehicle
 
 Conceptually:
 
-```text
-Vehicle reference
-       │
-       ↓
-ElectricVehicle object
+```mermaid
+graph TD
+    VR[Vehicle reference] -->|points to| EV[ElectricVehicle object]
 ```
 
 This is safe because:
@@ -1105,14 +1092,14 @@ But when an overridden instance method is called, runtime dispatch determines wh
 
 This distinction is fundamental:
 
-```text
-Compile time
-    ↓
-Reference type
-
-Runtime
-    ↓
-Actual object type
+```mermaid
+graph TD
+    subgraph Compile
+        CT[Compile time] --> RT[Reference type]
+    end
+    subgraph Run
+        R[Runtime] --> AO[Actual object type]
+    end
 ```
 
 ---
@@ -1216,14 +1203,11 @@ Frequent downcasting is often a sign that your design could be improved using po
 
 We can build:
 
-```text
-                 Vehicle
-                /       \
-               /         \
-      ElectricVehicle   PetrolVehicle
-             |
-             |
-        LuxuryEV
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
+    EV --> LE[LuxuryEV]
 ```
 
 Technically Java supports:
@@ -1258,12 +1242,12 @@ One major problem is ambiguity.
 
 Imagine:
 
-```text
-        A
-       / \
-      B   C
-       \ /
-        D
+```mermaid
+graph TD
+    A[A] --> B[B]
+    A --> C[C]
+    B --> D[D]
+    C --> D
 ```
 
 Suppose both `B` and `C` define:
@@ -1317,14 +1301,10 @@ This can be useful when you want to guarantee that behavior cannot be customized
 
 Notice the tension:
 
-```text
-Inheritance
-    ↓
-Reuse/extension
-
-Encapsulation
-    ↓
-Hide implementation
+```mermaid
+graph TD
+    I[Inheritance] --> RE[Reuse/extension]
+    E[Encapsulation] --> HI[Hide implementation]
 ```
 
 If you expose too much internal state for subclasses:
@@ -1365,15 +1345,15 @@ Just because you **can** use inheritance doesn't mean you **should**.
 
 Suppose:
 
-```text
-Vehicle
-├── ElectricVehicle
-├── PetrolVehicle
-├── HybridVehicle
-├── HydrogenVehicle
-├── AutonomousElectricVehicle
-├── AutonomousPetrolVehicle
-└── ...
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
+    V --> HV[HybridVehicle]
+    V --> HV2[HydrogenVehicle]
+    V --> AEV[AutonomousElectricVehicle]
+    V --> APV[AutonomousPetrolVehicle]
+    V --> dots[...]
 ```
 
 As requirements grow, the hierarchy can become complicated.
@@ -1480,9 +1460,10 @@ class SmsNotification extends Notification {
 
 Here inheritance can make sense because:
 
-```text
-EmailNotification IS-A Notification
-SmsNotification   IS-A Notification
+```mermaid
+graph LR
+    EN[EmailNotification] -->|IS-A| N[Notification]
+    SN[SmsNotification] -->|IS-A| N
 ```
 
 And it sets us up perfectly for:
@@ -1527,23 +1508,14 @@ ElectricVehicle HAS-A Battery
 
 Visualize:
 
-```text
-Inheritance:
-
-ElectricVehicle
-      │
-      IS-A
-      ↓
-   Vehicle
-
-
-Composition:
-
-ElectricVehicle
-      │
-     HAS-A
-      ↓
-   Battery
+```mermaid
+graph TD
+    subgraph Inheritance
+        EV[ElectricVehicle] -->|IS-A| V[Vehicle]
+    end
+    subgraph Composition
+        EV2[ElectricVehicle] -->|HAS-A| B[Battery]
+    end
 ```
 
 This distinction will become extremely important when we study **Composition**.
@@ -1617,12 +1589,10 @@ void drive(double kilometers)
 
 Now you'll have:
 
-```text
-                    Vehicle
-                   /       \
-                  /         \
-                 ↓           ↓
-       ElectricVehicle   PetrolVehicle
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
 ```
 
 ---
@@ -1798,45 +1768,36 @@ Why does Java allow multiple interfaces but only one parent class?
 
 Keep this picture:
 
-```text
-                         Vehicle
-                            │
-                 ┌──────────┴──────────┐
-                 ↓                     ↓
-         ElectricVehicle        PetrolVehicle
-                 │                     │
-          batteryCapacity        fuelCapacity
-          currentBattery         currentFuel
-                 │                     │
-              charge()              refuel()
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
+    EV --> BC[batteryCapacity]
+    EV --> CB[currentBattery]
+    EV --> C[charge]
+    PV --> FC[fuelCapacity]
+    PV --> CF[currentFuel]
+    PV --> R[refuel]
 ```
 
 Inheritance gives you:
 
-```text
-                 IS-A
-                  │
-                  ↓
-        shared abstraction
-                  │
-                  ↓
-          specialized behavior
+```mermaid
+graph TD
+    ISA[IS-A] --> SA[shared abstraction]
+    SA --> SB[specialized behavior]
 ```
 
 But inheritance alone isn't the ultimate goal.
 
 The real payoff comes next:
 
-```text
-Inheritance
-     ↓
-Method overriding
-     ↓
-Upcasting
-     ↓
-Polymorphism
-     ↓
-Runtime method dispatch
+```mermaid
+graph TD
+    I[Inheritance] --> O[Method overriding]
+    O --> U[Upcasting]
+    U --> P[Polymorphism]
+    P --> R[Runtime method dispatch]
 ```
 
 ---

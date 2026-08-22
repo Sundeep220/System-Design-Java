@@ -16,18 +16,13 @@ Java source code is **not directly machine code**.
 
 It goes roughly like:
 
-```text
-Java source
-    ↓
-javac
-    ↓
-Bytecode (.class)
-    ↓
-JVM
-    ↓
-Machine instructions
-    ↓
-CPU
+```mermaid
+graph TD
+    JS[Java source] --> J[javac]
+    J --> BC[Bytecode (.class)]
+    BC --> JVM[JVM]
+    JVM --> MI[Machine instructions]
+    MI --> CPU[CPU]
 ```
 
 Java bytecode looks conceptually like:
@@ -73,14 +68,12 @@ The JVM primarily executes **Java bytecode**, but it can also **invoke native ma
 
 For example:
 
-```text
-                 JVM
-                  |
-        ┌─────────┴──────────┐
-        ↓                    ↓
- Java bytecode          Native code
-        ↓                    ↓
-   JVM execution       CPU execution
+```mermaid
+graph TD
+    JVM[JVM] --> JB[Java bytecode]
+    JVM --> NC[Native code]
+    JB --> JE[JVM execution]
+    NC --> CE[CPU execution]
 ```
 
 The JVM provides mechanisms for Java code to interact with native code.
@@ -146,22 +139,12 @@ demo.sayHello();
 
 The flow becomes:
 
-```text
-Java
-  |
-  | demo.sayHello()
-  ↓
-JVM
-  |
-  | JNI
-  ↓
-Native library
-  |
-  ↓
-Machine code
-  |
-  ↓
-CPU
+```mermaid
+graph TD
+    J[Java code] -->|demo.sayHello| JVM[JVM]
+    JVM -->|JNI| NL[Native library]
+    NL --> MC[Machine code]
+    MC --> CPU[CPU]
 ```
 
 ---
@@ -176,14 +159,11 @@ For example:
 
 The OS itself exposes native APIs.
 
-```text
-Java
- ↓
-JVM
- ↓
-Native OS API
- ↓
-Operating System
+```mermaid
+graph TD
+    J[Java] --> JVM[JVM]
+    JVM --> NOA[Native OS API]
+    NOA --> OS[Operating System]
 ```
 
 ### Hardware access
@@ -241,16 +221,12 @@ you're actually starting a native executable.
 
 Conceptually:
 
-```text
-java executable
-      ↓
-HotSpot JVM
-      ↓
-C/C++/Assembly
-      ↓
-Operating System
-      ↓
-CPU
+```mermaid
+graph TD
+    JE[java executable] --> HS[HotSpot JVM]
+    HS --> N[Native C/C++/Assembly]
+    N --> OS[Operating System]
+    OS --> CPU[CPU]
 ```
 
 Inside that JVM, your Java bytecode runs.
@@ -283,24 +259,16 @@ But if a method becomes **hot** — executed many times — the JIT compiler can
 
 For example:
 
-```text
-Java source
-     ↓
-javac
-     ↓
-Bytecode
-     ↓
-JVM
-     ↓
-Interpreter
-     ↓
-method becomes HOT
-     ↓
-JIT compiler
-     ↓
-Native machine code
-     ↓
-CPU
+```mermaid
+graph TD
+    JS[Java source] --> J[javac]
+    J --> BC[Bytecode]
+    BC --> JVM[JVM]
+    JVM --> I[Interpreter]
+    I --> H{method becomes HOT}
+    H --> JIT[JIT compiler]
+    JIT --> NMC[Native machine code]
+    NMC --> CPU[CPU]
 ```
 
 So eventually your Java method may execute as CPU instructions.
@@ -323,14 +291,11 @@ int add(int a, int b) {
 
 gets compiled by the JVM's JIT.
 
-```text
-Java bytecode
-      ↓
-JIT
-      ↓
-Native machine code
-      ↓
-CPU
+```mermaid
+graph TD
+    JB[Java bytecode] --> JIT[JIT]
+    JIT --> NMC[Native machine code]
+    NMC --> CPU[CPU]
 ```
 
 You didn't write the native code.
@@ -349,14 +314,11 @@ native void sayHello();
 
 and a C/C++ implementation.
 
-```text
-Java
- ↓
-JNI
- ↓
-C/C++ native library
- ↓
-CPU
+```mermaid
+graph TD
+    J[Java] --> JNI[JNI]
+    JNI --> NC[C/C++ native library]
+    NC --> CPU[CPU]
 ```
 
 Here the native code was compiled separately.
@@ -367,22 +329,18 @@ Here the native code was compiled separately.
 
 Think of the JVM as a native program that contains:
 
-```text
-+----------------------------------+
-|             JVM                  |
-|                                  |
-|  Class Loader                    |
-|  Bytecode Interpreter            |
-|  JIT Compiler                    |
-|  Garbage Collector               |
-|  Thread Management               |
-|  JNI                             |
-|  Memory Management               |
-|                                  |
-+----------------------------------+
-              |
-              ↓
-          OS / CPU
+```mermaid
+graph TD
+    subgraph JVM [JVM]
+        CL[Class Loader]
+        BI[Bytecode Interpreter]
+        JITC[JIT Compiler]
+        GC[Garbage Collector]
+        TM[Thread Management]
+        JNI[JNI]
+        MM[Memory Management]
+    end
+    JVM --> OS[OS / CPU]
 ```
 
 The JVM itself needs native machine code to operate.
@@ -397,16 +355,12 @@ This connects directly to the JVM crash issue you were investigating.
 
 You had something like:
 
-```text
-Spring Boot
-    ↓
-JVM
-    ↓
-Datadog Java Agent
-    ↓
-native profiler (ddprof)
-    ↓
-native code
+```mermaid
+graph TD
+    SB[Spring Boot] --> JVM[JVM]
+    JVM --> DDA[Datadog Java Agent]
+    DDA --> NP[native profiler (ddprof)]
+    NP --> NC[Native code]
 ```
 
 The Java application itself may be perfectly valid.
@@ -417,22 +371,18 @@ That's because native code operates outside the normal Java safety model.
 
 For example:
 
-```text
-Java exception
-    ↓
-JVM handles it
+```mermaid
+graph TD
+    JE[Java exception] --> JVM[JVM handles it]
 ```
 
 But:
 
-```text
-Native code
-    ↓
-invalid memory access
-    ↓
-SIGSEGV
-    ↓
-JVM process crashes
+```mermaid
+graph TD
+    NC[Native code] --> IMA[invalid memory access]
+    IMA --> SIG[SIGSEGV]
+    SIG --> CRASH[JVM process crashes]
 ```
 
 This is why you can see:
@@ -515,44 +465,34 @@ That's an outdated oversimplification.
 
 Modern JVM execution is more like:
 
-```text
-                 Java source
-                     ↓
-                  javac
-                     ↓
-                  Bytecode
-                     ↓
-              ┌──────┴──────┐
-              ↓             ↓
-         Interpreter       JIT
-              ↓             ↓
-        execution       Native code
-                            ↓
-                           CPU
+```mermaid
+graph TD
+    JS[Java source] --> J[javac]
+    J --> BC[Bytecode]
+    BC --> JVM[JVM]
+    JVM --> I[Interpreter]
+    JVM --> JIT[JIT]
+    I --> E[execution]
+    JIT --> NC[Native code]
+    NC --> CPU[CPU]
 ```
 
 And simultaneously:
 
-```text
-Java application
-       ↓
-      JVM
-       ↓
-Native JVM implementation
-       ↓
-Operating System
+```mermaid
+graph TD
+    JA[Java application] --> JVM[JVM]
+    JVM --> NV[Native JVM implementation]
+    NV --> OS[Operating System]
 ```
 
 And potentially:
 
-```text
-Java
- ↓
-JNI
- ↓
-Native C/C++ library
- ↓
-CPU / OS
+```mermaid
+graph TD
+    J[Java] --> JNI[JNI]
+    JNI --> NC[Native C/C++ library]
+    NC --> OS[CPU / OS]
 ```
 
 So when you hear **"native code" in JVM discussions**, always ask:
@@ -563,26 +503,20 @@ Those are three related but different concepts.
 
 ### The mental model to remember
 
-```text
-                  JAVA APPLICATION
-                         |
-                    Java bytecode
-                         |
-                         ↓
-              ┌─────────────────────┐
-              │         JVM         │
-              │                     │
-              │ Interpreter         │
-              │ JIT Compiler ───────┼──→ Native machine code
-              │                     │
-              │ JNI ────────────────┼──→ Native libraries
-              │                     │
-              │ GC / Runtime        │
-              └──────────┬──────────┘
-                         ↓
-                  Operating System
-                         ↓
-                       CPU
+```mermaid
+graph TD
+    JA[JAVA APPLICATION] --> JB[Java bytecode]
+    JB --> JVM[JVM]
+    subgraph JVM [JVM]
+        I[Interpreter]
+        JIT[JIT Compiler]
+        JNI[JNI]
+        GC[GC / Runtime]
+    end
+    JIT --> NMC[Native machine code]
+    JNI --> NL[Native libraries]
+    JVM --> OS[Operating System]
+    OS --> CPU[CPU]
 ```
 
 This is also why **JIT, JNI, native memory, JVM crashes/SIGSEGV, and profiling agents** are all closely connected topics.

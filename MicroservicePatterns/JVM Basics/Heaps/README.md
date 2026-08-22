@@ -261,16 +261,13 @@ Now we reach the important part.
 
 Historically, generational JVMs commonly conceptualized the heap as:
 
-```text
-Heap
-│
-├── Young Generation
-│   │
-│   ├── Eden
-│   ├── Survivor 0
-│   └── Survivor 1
-│
-└── Old Generation
+```mermaid
+graph TD
+    H[Heap] --> YG[Young Generation]
+    YG --> E[Eden]
+    YG --> S0[Survivor 0]
+    YG --> S1[Survivor 1]
+    H --> OG[Old Generation]
 ```
 
 This is based on the **generational hypothesis**.
@@ -318,29 +315,20 @@ New objects are generally allocated in the **young generation** for collectors t
 
 Conceptually:
 
-```text
-Young Generation
-│
-├── Eden
-├── Survivor 0
-└── Survivor 1
+```mermaid
+graph TD
+    YG[Young Generation] --> E2[Eden]
+    YG --> S0[Survivor 0]
+    YG --> S1[Survivor 1]
 ```
 
 Usually the lifecycle looks approximately like:
 
-```text
-new object
-    |
-    v
-  Eden
-    |
-    | survives GC
-    v
-Survivor
-    |
-    | survives multiple GCs
-    v
-Old Generation
+```mermaid
+graph TD
+    NO[new object] --> ED[Eden]
+    ED -->|survives GC| SV[Survivor]
+    SV -->|survives multiple GCs| OG[Old Generation]
 ```
 
 We'll dedicate the next topic specifically to this.
@@ -616,23 +604,15 @@ User user = new User();
 
 Conceptually:
 
-```text
-GC Root
-   |
-   v
-user reference
-   |
-   v
-User object
+```mermaid
+graph TD
+    GCR[GC Root] --> UR[user reference]
+    UR --> UO[User object]
 ```
 
 The object is reachable.
 
-Therefore:
-
-```text
-NOT garbage
-```
+Therefore: **NOT garbage**
 
 Now:
 

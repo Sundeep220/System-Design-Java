@@ -112,19 +112,17 @@ This is encapsulation.
 
 Think about it as:
 
-```text
-             ENCAPSULATION
-                  │
-        ┌─────────┴─────────┐
-        ↓                   ↓
-  Hide internal state    Control behavior
-        │                   │
-      private          methods validate
-        │                   │
-        └─────────┬─────────┘
-                  ↓
-          protect invariants
+```mermaid
+graph TD
+    ENC[ENCAPSULATION] --> HIDE[Hide internal state]
+    ENC --> CTRL[Control behavior]
+    HIDE --> PRIV[private fields]
+    CTRL --> METHODS[methods validate]
+    PRIV --> INV[protect invariants]
+    METHODS --> INV
 ```
+
+> The two pillars of encapsulation reinforce each other: hidden state plus controlled behavior keep the object's invariants intact.
 
 So:
 
@@ -649,6 +647,11 @@ External list
 
 Changes to the external list don't affect the internal list.
 
+```mermaid
+graph LR
+    A[Internal list] -->|defensive copy| B[External list]
+```
+
 Another option:
 
 ```java
@@ -752,6 +755,12 @@ Expose essential concept
 ```
 
 They work together, but they're not the same thing.
+
+```mermaid
+graph TD
+    E[Encapsulation] --> E1[Hide / protect internals]
+    A[Abstraction] --> A1[Expose essential concept only]
+```
 
 ---
 
@@ -998,17 +1007,15 @@ account.withdraw(1000);
 
 Now:
 
-```text
-Caller
-   │
-   │ withdraw()
-   ↓
-BankAccount
-   │
-   ├── validate
-   ├── enforce rules
-   └── change state
+```mermaid
+graph TD
+    C[Caller] -->|withdraw(amount)| BA[BankAccount]
+    BA --> V[validate amount]
+    BA --> R[enforce business rules]
+    BA --> S[change state safely]
 ```
+
+> The object itself owns the operation and its rules, which is the practical meaning of encapsulation.
 
 ---
 

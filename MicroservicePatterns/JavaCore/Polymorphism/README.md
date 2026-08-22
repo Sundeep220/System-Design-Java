@@ -4,16 +4,12 @@ Polymorphism is one of the **most important concepts in Java OOP**, especially f
 
 If you truly understand polymorphism, a lot of things that otherwise look like "Spring magic" start making sense:
 
-```text
-Interfaces
-   ↓
-Dependency Injection
-   ↓
-Multiple implementations
-   ↓
-Runtime method dispatch
-   ↓
-Loose coupling
+```mermaid
+graph TD
+    I[Interfaces] --> DI[Dependency Injection]
+    DI --> MI[Multiple implementations]
+    MI --> RD[Runtime method dispatch]
+    RD --> LC[Loose coupling]
 ```
 
 The word comes from:
@@ -35,14 +31,12 @@ But there are two major forms we need to distinguish.
 
 In Java, you'll commonly hear:
 
-```text
-Polymorphism
-│
-├── Compile-time polymorphism
-│      └── Method overloading
-│
-└── Runtime polymorphism
-       └── Method overriding
+```mermaid
+graph TD
+    P[Polymorphism] --> CP[Compile-time polymorphism]
+    P --> RP[Runtime polymorphism]
+    CP --> MO[Method overloading]
+    RP --> MO2[Method overriding]
 ```
 
 The difference is fundamental.
@@ -102,22 +96,25 @@ calculator.add(10, 20);
 
 The compiler sees:
 
-```text
-add(int, int)
-add(double, double)
-add(int, int, int)
+```mermaid
+graph TD
+    A1[add(int, int)]
+    A2[add(double, double)]
+    A3[add(int, int, int)]
 ```
 
 Arguments are:
 
-```text
-int, int
+```mermaid
+graph TD
+    ARGS[int, int]
 ```
 
 So it selects:
 
-```text
-add(int, int)
+```mermaid
+graph TD
+    SEL[add(int, int)]
 ```
 
 The method selection happens before the program executes.
@@ -207,13 +204,12 @@ Vehicle vehicle = new ElectricVehicle();
 
 Think:
 
-```text
-Reference type                Object type
-     ↓                             ↓
-  Vehicle                   ElectricVehicle
-     │                             │
-     └──────── reference ──────────┘
+```mermaid
+graph LR
+    RT[Reference type: Vehicle] -->|reference| OT[Object type: ElectricVehicle]
 ```
+
+> The variable is declared as `Vehicle`, but the actual object created is `ElectricVehicle`.
 
 The variable is declared as `Vehicle`.
 
@@ -265,8 +261,9 @@ Why?
 
 Because the compiler looks at the **reference type**:
 
-```text
-Vehicle
+```mermaid
+graph TD
+    V[Vehicle]
 ```
 
 and asks:
@@ -309,14 +306,14 @@ ElectricVehicle.start()
 
 So:
 
-```text
-Compile time
-    ↓
-Check reference type
-
-Runtime
-    ↓
-Determine overridden implementation from actual object
+```mermaid
+graph TD
+    subgraph Compile
+        CT[Compile time] --> C1[Check reference type]
+    end
+    subgraph Run
+        R[Runtime] --> C2[Determine overridden implementation from actual object]
+    end
 ```
 
 This is the heart of runtime polymorphism.
@@ -385,9 +382,10 @@ Animal
 
 Different behavior:
 
-```text
-Dog → Bark
-Cat → Meow
+```mermaid
+graph LR
+    Dog[Dog] -->|sound| Bark[Bark]
+    Cat[Cat] -->|sound| Meow[Meow]
 ```
 
 That's polymorphism.
@@ -517,20 +515,15 @@ Each object executes its own implementation.
 
 Conceptually:
 
-```text
-List<Vehicle>
-      │
-      ├── ElectricVehicle
-      ├── PetrolVehicle
-      ├── ElectricVehicle
-      └── PetrolVehicle
-               │
-               ↓
-           start()
-               │
-       ┌───────┴────────┐
-       ↓                ↓
-   Electric          Petrol
+```mermaid
+graph TD
+    LV[List<Vehicle>] --> EV1[ElectricVehicle]
+    LV --> PV1[PetrolVehicle]
+    LV --> EV2[ElectricVehicle]
+    LV --> PV2[PetrolVehicle]
+    LV --> start[start]
+    start --> E[Electric motor]
+    start --> P[Petrol engine]
 ```
 
 This pattern is everywhere in Java.
@@ -608,15 +601,17 @@ processor.process(1000);
 
 The caller only depends on:
 
-```text
-PaymentProcessor
+```mermaid
+graph TD
+    PP[PaymentProcessor]
 ```
 
 not:
 
-```text
-StripeProcessor
-RazorpayProcessor
+```mermaid
+graph TD
+    SP[StripeProcessor]
+    RP[RazorpayProcessor]
 ```
 
 This is **polymorphism through interfaces**.
@@ -653,15 +648,11 @@ Spring can inject an implementation.
 
 The important OOP concept underneath is:
 
-```text
-PaymentProcessor
-       ↑
-       │
-   interface
-       │
- ┌─────┴──────┐
- ↓            ↓
-Stripe     Razorpay
+```mermaid
+graph BT
+    PP[PaymentProcessor
+    interface] --> SP[Stripe]
+    PP --> RP[Razorpay]
 ```
 
 The consumer doesn't need to be tightly coupled to a concrete implementation.
@@ -684,38 +675,32 @@ vehicle.start();
 
 At compile time:
 
-```text
-Does Vehicle have start()?
-        ↓
-       YES
-        ↓
-Compile succeeds
+```mermaid
+graph TD
+    Q1[Does Vehicle have start?] --> A1[YES]
+    A1 --> CS[Compile succeeds]
 ```
 
 At runtime:
 
-```text
-What is the actual object?
-        ↓
-ElectricVehicle
-        ↓
-Does ElectricVehicle override start()?
-        ↓
-       YES
-        ↓
-Execute ElectricVehicle.start()
+```mermaid
+graph TD
+    Q2[What is the actual object?] --> EV[ElectricVehicle]
+    EV --> Q3[Does ElectricVehicle override start?]
+    Q3 --> A2[YES]
+    A2 --> EX[Execute ElectricVehicle.start]
 ```
 
 So:
 
-```text
-Compile time
-    ↓
-Method must be valid for reference type
-
-Runtime
-    ↓
-Overridden implementation determined by object type
+```mermaid
+graph TD
+    subgraph Compile
+        CT[Compile time] --> MV[Method must be valid for reference type]
+    end
+    subgraph Run
+        R[Runtime] --> OD[Overridden implementation determined by object type]
+    end
 ```
 
 ---
@@ -813,14 +798,10 @@ Child method
 
 This difference is extremely important.
 
-```text
-Fields
-  ↓
-Reference type
-
-Overridden instance methods
-  ↓
-Actual object type
+```mermaid
+graph TD
+    F[Fields] --> FR[Reference type]
+    M[Overridden instance methods] --> AO[Actual object type]
 ```
 
 ---
@@ -1057,15 +1038,11 @@ class OrderService {
 
 Now:
 
-```text
-OrderService
-     │
-     ↓
-PaymentProcessor
-     ↑
- ┌───┴────┐
- ↓        ↓
-Stripe  Razorpay
+```mermaid
+graph TD
+    OS[OrderService] --> PP2[PaymentProcessor]
+    PP2 --> Stripe[Stripe]
+    PP2 --> Razorpay[Razorpay]
 ```
 
 This is much more flexible.
@@ -1105,14 +1082,11 @@ Now the caller/framework chooses the implementation.
 
 This gives:
 
-```text
-Polymorphism
-     +
-Composition
-     +
-Dependency Injection
-     =
-Loose coupling
+```mermaid
+graph LR
+    P[Polymorphism] --> C[Composition]
+    C --> DI[Dependency Injection]
+    DI --> LC[Loose coupling]
 ```
 
 We'll come back to this when we study **Composition** and eventually Spring.
@@ -1184,40 +1158,30 @@ This is polymorphism.
 
 You should now see this chain:
 
-```text
-Inheritance
-    ↓
-Method overriding
-    ↓
-Upcasting
-    ↓
-Runtime polymorphism
+```mermaid
+graph TD
+    I[Inheritance] --> MO[Method overriding]
+    MO --> U[Upcasting]
+    U --> RP[Runtime polymorphism]
 ```
 
 And another:
 
-```text
-Interface
-    ↓
-Multiple implementations
-    ↓
-Interface reference
-    ↓
-Runtime polymorphism
+```mermaid
+graph TD
+    IF[Interface] --> MI[Multiple implementations]
+    MI --> IR[Interface reference]
+    IR --> RP2[Runtime polymorphism]
 ```
 
 And in Spring:
 
-```text
-Interface
-    ↓
-Multiple @Service implementations
-    ↓
-Dependency Injection
-    ↓
-Polymorphism
-    ↓
-Loose coupling
+```mermaid
+graph TD
+    IF2[Interface] --> MSI[Multiple @Service implementations]
+    MSI --> DI[Dependency Injection]
+    DI --> P[Polymorphism]
+    P --> LC[Loose coupling]
 ```
 
 ---
@@ -1449,16 +1413,10 @@ Parent String
 
 This gives you a very important two-step mental model:
 
-```text
-Step 1:
-Which method signature?
-        ↓
-Compile time
-
-Step 2:
-Which implementation of that signature?
-        ↓
-Runtime
+```mermaid
+graph TD
+    S1[Step 1: Which method signature?] --> CT[Compile time]
+    S2[Step 2: Which implementation?] --> R[Runtime]
 ```
 
 This is a fantastic interview concept.
@@ -1478,16 +1436,12 @@ vehicle.start();
 
 executes, the runtime effectively needs to determine:
 
-```text
-Actual object
-     ↓
-ElectricVehicle
-     ↓
-Does it provide an override for start()?
-     ↓
-Yes
-     ↓
-Execute ElectricVehicle.start()
+```mermaid
+graph TD
+    AO[Actual object] --> EV[ElectricVehicle]
+    EV --> Q[Does it provide an override for start?]
+    Q --> A[Yes]
+    A --> EX[Execute ElectricVehicle.start]
 ```
 
 Java uses dynamic dispatch mechanisms internally to achieve this.
@@ -1515,12 +1469,10 @@ That's an **example of polymorphism**, but not the full idea.
 
 The real value is:
 
-```text
-Same abstraction
-       ↓
-Different implementations
-       ↓
-Different behavior
+```mermaid
+graph TD
+    SA[Same abstraction] --> DI[Different implementations]
+    DI --> DB[Different behavior]
 ```
 
 For example:
@@ -1684,28 +1636,16 @@ It allows code to depend on abstractions rather than concrete implementations, r
 
 Understand this completely:
 
-```text
-                 Vehicle
-                    ▲
-                    │
-          ┌─────────┴─────────┐
-          │                   │
-          │                   │
- ElectricVehicle        PetrolVehicle
-          │                   │
-       start()              start()
-          │                   │
-          └─────────┬─────────┘
-                    │
-                    │
-          Vehicle reference
-                    │
-          ┌─────────┴─────────┐
-          ↓                   ↓
-   Electric object      Petrol object
-          │                   │
-          ↓                   ↓
-   Electric start()    Petrol start()
+```mermaid
+graph TD
+    V[Vehicle] --> EV[ElectricVehicle]
+    V --> PV[PetrolVehicle]
+    EV --> ES[start]
+    PV --> PS[start]
+    VR[Vehicle reference] --> EO[Electric object]
+    VR --> PO[Petrol object]
+    EO --> EVS[Electric start]
+    PO --> PVS[Petrol start]
 ```
 
 And:
@@ -1716,13 +1656,11 @@ Vehicle v = new ElectricVehicle();
 
 means:
 
-```text
-REFERENCE TYPE             OBJECT TYPE
-     Vehicle          →    ElectricVehicle
-       │                       │
-       │                       │
-       ↓                       ↓
-What compiler sees       What runtime sees
+```mermaid
+graph LR
+    RT2[REFERENCE TYPE: Vehicle] -->|reference| OT2[OBJECT TYPE: ElectricVehicle]
+    RT2 --> CCS[What compiler sees]
+    OT2 --> WRS[What runtime sees]
 ```
 
 This distinction is one of the **most important Java concepts to master**.
@@ -1742,16 +1680,12 @@ We've now covered:
 
 And we've already connected them:
 
-```text
-Class
- ↓
-Encapsulation
- ↓
-Inheritance
- ↓
-Overriding
- ↓
-Polymorphism
+```mermaid
+graph TD
+    C[Class] --> E[Encapsulation]
+    E --> I[Inheritance]
+    I --> O[Overriding]
+    O --> P[Polymorphism]
 ```
 
 ## Next: Abstract Classes

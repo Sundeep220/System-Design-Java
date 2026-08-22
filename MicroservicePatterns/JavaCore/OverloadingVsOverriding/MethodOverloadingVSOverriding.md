@@ -124,12 +124,11 @@ add(int, int, int)
 
 So:
 
-```text
-                 add(...)
-                    |
-        +-----------+-----------+
-        |           |           |
-    int,int    int,int,int   double,double
+```mermaid
+graph TD
+    ADD[add(...)] --> A1[int,int]
+    ADD --> A2[int,int,int]
+    ADD --> A3[double,double]
 ```
 
 This decision happens at **compile time**.
@@ -316,8 +315,12 @@ calculate(short)
 
 But Java can widen:
 
-```text
-short → int → long → float → double
+```mermaid
+graph LR
+    S[short] --> I[int]
+    I --> L[long]
+    L --> F[float]
+    F --> D[double]
 ```
 
 So it selects:
@@ -375,11 +378,12 @@ Because `"Hello"` is a `String`.
 
 And:
 
-```text
-String
-   ↓
-Object
+```mermaid
+graph BT
+    Object --> String
 ```
+
+> `String` is a subtype of `Object`, so the more specific `print(String)` is chosen.
 
 So both methods are technically applicable:
 
@@ -459,15 +463,10 @@ void sound()
 
 So:
 
-```text
-Animal
-   |
-   | sound()
-   |
-   ↓
-Dog
-   |
-   | overrides sound()
+```mermaid
+graph TD
+    A[Animal] -->|sound| D[Dog]
+    D -->|overrides sound| D2[Dog.sound]
 ```
 
 ---
@@ -532,38 +531,28 @@ This is called:
 
 Think about every method call in two stages.
 
-```text
-             method call
-                  |
-                  ↓
-        ┌───────────────────┐
-        │ 1. Compile time   │
-        │ Find signature    │
-        └─────────┬─────────┘
-                  ↓
-        ┌───────────────────┐
-        │ 2. Runtime        │
-        │ Find implementation│
-        └───────────────────┘
+```mermaid
+graph TD
+    MC[method call] --> CT[1. Compile time
+Find signature]
+    CT --> RT[2. Runtime
+Find implementation]
 ```
 
 But this second step only matters for methods that participate in runtime dispatch.
 
 This gives us:
 
-```text
-OVERLOADING
-    ↓
-Which signature?
-    ↓
-Compile time
-
-
-OVERRIDING
-    ↓
-Which implementation?
-    ↓
-Runtime
+```mermaid
+graph TD
+    subgraph Overloading
+        O1[OVERLOADING] --> Q1[Which signature?]
+        Q1 --> C1[Compile time]
+    end
+    subgraph Overriding
+        O2[OVERRIDING] --> Q2[Which implementation?]
+        Q2 --> R1[Runtime]
+    end
 ```
 
 ---
@@ -928,35 +917,15 @@ p.process("hello");
 
 think:
 
-```text
-                   p.process("hello")
-                           |
-                           ↓
-                 Reference type = Parent
-                           |
-                           ↓
-              ┌─────────────────────────┐
-              │ Compile-time overload   │
-              │ resolution              │
-              └────────────┬────────────┘
-                           ↓
-                    process(String)
-                           |
-                           ↓
-              ┌─────────────────────────┐
-              │ Runtime dispatch        │
-              │                         │
-              │ Does Child override     │
-              │ process(String)?        │
-              └────────────┬────────────┘
-                           ↓
-                          NO
-                           |
-                           ↓
-                Parent.process(String)
-                           |
-                           ↓
-                   "Parent String"
+```mermaid
+graph TD
+    CALL[p.process("hello")] --> RT[Reference type = Parent]
+    RT --> OL[Compile-time overload resolution]
+    OL --> SIG[process(String)]
+    SIG --> RD[Runtime dispatch<br/>Does Child override process(String)?]
+    RD --> NO[NO]
+    NO --> PP[Parent.process(String)]
+    PP --> OUT["Parent String"]
 ```
 
 ---
@@ -1160,25 +1129,26 @@ That's because:
 
 # 23. This Is the Core Difference
 
-Remember this table:
+Remember this comparison:
 
-```text
-                 OVERLOADING             OVERRIDING
-
-Method name      Same                    Same
-
-Parameters       Different              Same
-
-Relationship     Same class or           Parent-child
-                 inheritance
-
-Decision         Compile time            Runtime
-
-Based on         Reference/argument      Actual object
-                 compile-time types      type
-
-Purpose          Different ways          Different
-                 to call a method        implementation
+```mermaid
+graph TD
+    subgraph Overloading
+        O[OVERLOADING] --> MN1[Method name: Same]
+        O --> P1[Parameters: Different]
+        O --> R1[Relationship: Same class or inheritance]
+        O --> D1[Decision: Compile time]
+        O --> B1[Based on: Reference/argument compile-time types]
+        O --> PP1[Purpose: Different ways to call a method]
+    end
+    subgraph Overriding
+        O2[OVERRIDING] --> MN2[Method name: Same]
+        O2 --> P2[Parameters: Same]
+        O2 --> R2[Relationship: Parent-child]
+        O2 --> D2[Decision: Runtime]
+        O2 --> B2[Based on: Actual object type]
+        O2 --> PP2[Purpose: Different implementation]
+    end
 ```
 
 ---
@@ -1847,30 +1817,14 @@ If not, Parent implementation executes.
 
 You can memorize this:
 
-```text
-             METHOD CALL
-                  |
-                  ↓
-       ┌─────────────────────┐
-       │ Compile Time        │
-       │                     │
-       │ Find overload       │
-       │ using reference     │
-       │ type + argument     │
-       └──────────┬──────────┘
-                  ↓
-             Method Signature
-                  |
-                  ↓
-       ┌─────────────────────┐
-       │ Runtime             │
-       │                     │
-       │ Find overridden     │
-       │ implementation      │
-       │ using object type   │
-       └──────────┬──────────┘
-                  ↓
-              EXECUTION
+```mermaid
+graph TD
+    MC[METHOD CALL] --> CT[Compile Time
+Find overload using reference type + argument]
+    CT --> MS[Method Signature]
+    MS --> RT[Runtime
+Find overridden implementation using object type]
+    RT --> EX[EXECUTION]
 ```
 
 Or, even shorter:

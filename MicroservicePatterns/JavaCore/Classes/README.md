@@ -47,15 +47,13 @@ But notice something important:
 
 We've only defined what a `Car` **has** and what a `Car` **can do**.
 
-```text
-Car
-│
-├── State
-│   ├── model
-│   └── speed
-│
-└── Behavior
-    └── accelerate()
+```mermaid
+graph TD
+    Car[Car] --> State[State]
+    Car --> Behavior[Behavior]
+    State --> model[model]
+    State --> speed[speed]
+    Behavior --> accelerate[accelerate]
 ```
 
 Now:
@@ -67,14 +65,17 @@ Car car2 = new Car();
 
 We created **two different objects** from the same class.
 
-```text
-              Car class
-             /          \
-            /            \
-       car1 object     car2 object
-       model = ?       model = ?
-       speed = 0       speed = 0
+```mermaid
+graph TD
+    CC[Car class] --> car1[car1 object]
+    CC --> car2[car2 object]
+    car1 --> model1[model = ?]
+    car1 --> speed1[speed = 0]
+    car2 --> model2[model = ?]
+    car2 --> speed2[speed = 0]
 ```
+
+> Each object is an independent instance that follows the same blueprint.
 
 The class describes the structure.
 
@@ -107,14 +108,10 @@ This creates an **instance** of the class.
 
 So:
 
-```text
-Class
-  ↓
-Blueprint
-
-Object
-  ↓
-Actual instance created from blueprint
+```mermaid
+graph TD
+    Class[Class] --> Blueprint[Blueprint]
+    Object[Object] --> Instance[Actual instance created from blueprint]
 ```
 
 You can create many objects from one class:
@@ -137,15 +134,17 @@ e2.salary = 70000;
 
 Conceptually:
 
-```text
-Employee class
-      │
-      ├───────────────┐
-      ↓               ↓
-   Object e1        Object e2
-   Alice             Bob
-   50000             70000
+```mermaid
+graph TD
+    EC[Employee class] --> e1[Object e1
+    Alice
+    50000]
+    EC --> e2[Object e2
+    Bob
+    70000]
 ```
+
+> Same class, different state: the structure is shared, the values are per-object.
 
 ---
 
@@ -182,18 +181,17 @@ class Employee {
 
 A class can contain:
 
-```text
-Class
-│
-├── Fields
-├── Constructors
-├── Methods
-├── Static fields
-├── Static methods
-├── Nested classes
-├── Initializer blocks
-├── Static initializer blocks
-└── etc.
+```mermaid
+graph TD
+    Class[Class] --> Fields[Fields]
+    Class --> Constructors[Constructors]
+    Class --> Methods[Methods]
+    Class --> SF[Static fields]
+    Class --> SM[Static methods]
+    Class --> NC[Nested classes]
+    Class --> IB[Initializer blocks]
+    Class --> SIB[Static initializer blocks]
+    Class --> etc[etc.]
 ```
 
 We'll study these progressively.
@@ -235,21 +233,21 @@ e2.name = "Bob";
 
 Conceptually:
 
-```text
-e1
-┌─────────────────┐
-│ name = Alice    │
-│ age = 0         │
-│ salary = 0      │
-└─────────────────┘
-
-e2
-┌─────────────────┐
-│ name = Bob      │
-│ age = 0         │
-│ salary = 0      │
-└─────────────────┘
+```mermaid
+graph LR
+    subgraph e1 [e1]
+        name1[name = Alice]
+        age1[age = 0]
+        salary1[salary = 0]
+    end
+    subgraph e2 [e2]
+        name2[name = Bob]
+        age2[age = 0]
+        salary2[salary = 0]
+    end
 ```
+
+> Each object owns its own copy of the instance fields.
 
 Changing `e1.name` does not change `e2.name`.
 
@@ -276,15 +274,11 @@ class BankAccount {
 
 Here:
 
-```text
-balance
-    ↓
-state
-
-deposit()
-withdraw()
-    ↓
-behavior
+```mermaid
+graph TD
+    balance[balance] --> state[state]
+    deposit[deposit] --> behavior[behavior]
+    withdraw[withdraw] --> behavior
 ```
 
 This is one of the fundamental ideas behind OOP:
@@ -471,14 +465,11 @@ The constructor initializes the object.
 
 Conceptually:
 
-```text
-new Employee(...)
-        ↓
-Object created
-        ↓
-Constructor executed
-        ↓
-Object initialized
+```mermaid
+graph TD
+    NE[new Employee(...)] --> OC[Object created]
+    OC --> CE[Constructor executed]
+    CE --> OI[Object initialized]
 ```
 
 ---
@@ -644,14 +635,10 @@ class Employee {
 
 There are two `name`s:
 
-```text
-this.name
-   ↓
-instance field
-
-name
-   ↓
-constructor parameter
+```mermaid
+graph TD
+    TN[this.name] --> IF[instance field]
+    N[name] --> CP[constructor parameter]
 ```
 
 So:
@@ -694,10 +681,9 @@ e1.printName();
 
 then inside `printName()`:
 
-```text
-this
- ↓
-e1
+```mermaid
+graph TD
+    this1[this] --> e1[e1]
 ```
 
 If:
@@ -711,10 +697,9 @@ e2.printName();
 
 then:
 
-```text
-this
- ↓
-e2
+```mermaid
+graph TD
+    this2[this] --> e2[e2]
 ```
 
 So `this` depends on which object invoked the method.
@@ -792,20 +777,16 @@ class Employee {
 
 Conceptually:
 
-```text
-Employee class
-      │
-      │
-      └── static company
-             │
-             └── shared
-
-Employee objects
-      │
-      ├── e1.name
-      ├── e2.name
-      └── e3.name
+```mermaid
+graph TD
+    EC[Employee class] --> company[static company
+    shared]
+    EO[Employee objects] --> e1n[e1.name]
+    EO --> e2n[e2.name]
+    EO --> e3n[e3.name]
 ```
+
+> `static` fields live with the class; instance fields live with each object.
 
 So:
 
@@ -1314,27 +1295,22 @@ public class BankAccount {
 
 Notice how much is already happening:
 
-```text
-Class
- ├── State
- │    ├── accountNumber
- │    ├── owner
- │    └── balance
- │
- ├── Constructor
- │
- ├── Behavior
- │    ├── deposit()
- │    └── withdraw()
- │
- ├── Encapsulation
- │    └── private fields
- │
- ├── Immutability hint
- │    └── final accountNumber
- │
- └── Object representation
-      └── toString()
+```mermaid
+graph TD
+    C[Class] --> S[State]
+    C --> Con[Constructor]
+    C --> B[Behavior]
+    C --> E[Encapsulation]
+    C --> IH[Immutability hint]
+    C --> OR[Object representation]
+    S --> acc[accountNumber]
+    S --> own[owner]
+    S --> bal[balance]
+    B --> dep[deposit]
+    B --> wit[withdraw]
+    E --> priv[private fields]
+    IH --> final[final accountNumber]
+    OR --> ts[toString]
 ```
 
 We're deliberately building concepts that will later connect together.
@@ -1371,27 +1347,26 @@ ChargingStation station =
 
 You could have:
 
-```text
-ChargingStation
-       │
-       ├── stationId
-       ├── location
-       ├── availableConnectors
-       │
-       ├── startCharging()
-       └── stopCharging()
+```mermaid
+graph TD
+    CS[ChargingStation] --> sid[stationId]
+    CS --> loc[location]
+    CS --> ac[availableConnectors]
+    CS --> sc[startCharging]
+    CS --> stc[stopCharging]
 ```
 
 Later we'll evolve this into:
 
-```text
-ChargingStation
-      │
-      ├── Connector
-      ├── ChargingSession
-      ├── Payment
-      └── Vehicle
+```mermaid
+graph TD
+    CS2[ChargingStation] --> Connector[Connector]
+    CS2 --> ChargingSession[ChargingSession]
+    CS2 --> Payment[Payment]
+    CS2 --> Vehicle[Vehicle]
 ```
+
+> Composition lets a class own references to other objects rather than duplicating their data.
 
 And this is where **composition** becomes important.
 

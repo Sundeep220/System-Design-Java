@@ -205,16 +205,10 @@ You need to understand both:
 
 ## Synchronous communication
 
-```text
-Order Service
-     │
-     │ HTTP
-     ▼
-Payment Service
-     │
-     │ HTTP
-     ▼
-Bank
+```mermaid
+graph TD
+    OS[Order Service] -->|HTTP| PS[Payment Service]
+    PS -->|HTTP| B[Bank]
 ```
 
 Learn:
@@ -262,15 +256,11 @@ Learn:
 
 Then move into messaging.
 
-```text
-Order Service
-      │
-      │ OrderCreated
-      ▼
-   Kafka
-   /   \
-  ▼     ▼
-Inventory   Notification
+```mermaid
+graph TD
+    OS2[Order Service] -->|OrderCreated| K[Kafka]
+    K --> INV[Inventory]
+    K --> NOTIF[Notification]
 ```
 
 Learn:
@@ -372,37 +362,23 @@ Learn both:
 
 ### Choreography
 
-```text
-Order
- │
- │ OrderCreated
- ▼
-Kafka
- │
- ▼
-Inventory
- │
- │ InventoryReserved
- ▼
-Kafka
- │
- ▼
-Payment
+```mermaid
+graph TD
+    O[Order] -->|OrderCreated| K1[Kafka]
+    K1 --> INV[Inventory]
+    INV -->|InventoryReserved| K2[Kafka]
+    K2 --> PAY[Payment]
 ```
 
 Services react to events.
 
 ### Orchestration
 
-```text
-             ┌─────────────┐
-             │   Saga      │
-             │ Orchestrator│
-             └──────┬──────┘
-                    │
-          ┌─────────┼─────────┐
-          ▼         ▼         ▼
-       Order     Inventory  Payment
+```mermaid
+graph TD
+    SO[Saga Orchestrator] --> ORD[Order]
+    SO --> INV2[Inventory]
+    SO --> PAY2[Payment]
 ```
 
 Learn:
@@ -433,20 +409,20 @@ One of the most important architectural rules:
 
 Understand:
 
-```text
-Order Service ──► Order DB
-
-Payment Service ──► Payment DB
-
-Inventory Service ──► Inventory DB
+```mermaid
+graph TD
+    OS3[Order Service] --> ODB[Order DB]
+    PS2[Payment Service] --> PDB[Payment DB]
+    IS[Inventory Service] --> IDB[Inventory DB]
 ```
 
 Not:
 
-```text
-Order ─┐
-Payment ├──► SAME DATABASE
-Inventory ┘
+```mermaid
+graph TD
+    ORD2[Order] --> SDB[SAME DATABASE]
+    PAY3[Payment] --> SDB
+    INV3[Inventory] --> SDB
 ```
 
 Learn:

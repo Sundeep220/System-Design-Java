@@ -165,14 +165,11 @@ Consider:
 
 Conceptually:
 
-```text
-        Annotation
-             |
-          @Override
-             |
-      metadata attached
-             |
-          method
+```mermaid
+graph TD
+    A[Annotation] --> O[@Override]
+    O --> MA[metadata attached]
+    MA --> M[method]
 ```
 
 A custom annotation looks like:
@@ -270,16 +267,12 @@ This is an important service
 
 Now we have the fundamental connection:
 
-```text
-Annotation
-     ↓
-attached to Java element
-     ↓
-Reflection
-     ↓
-inspect annotation
-     ↓
-execute custom behavior
+```mermaid
+graph TD
+    A[Annotation] --> AJ[attached to Java element]
+    AJ --> R[Reflection]
+    R --> IA[inspect annotation]
+    IA --> EB[execute custom behavior]
 ```
 
 ---
@@ -620,14 +613,11 @@ Example:
 
 Conceptually:
 
-```text
-.java source
-   ↓
-compiler
-   ↓
-.class
-   ↓
-annotation gone
+```mermaid
+graph TD
+    JS[.java source] --> C[compiler]
+    C --> CF[.class]
+    CF --> AG[annotation gone]
 ```
 
 Useful for:
@@ -650,18 +640,13 @@ But normally it isn't available through runtime reflection.
 
 Flow:
 
-```text
-.java
- ↓
-compiler
- ↓
-.class
- ↓
-annotation exists
- ↓
-JVM runtime
- ↓
-reflection cannot normally see it
+```mermaid
+graph TD
+    JS2[.java] --> C2[compiler]
+    C2 --> CF2[.class]
+    CF2 --> AE[annotation exists]
+    AE --> JVM[JVM runtime]
+    JVM --> RNS[reflection cannot normally see it]
 ```
 
 This is the default retention policy if you don't specify one.
@@ -723,14 +708,10 @@ Audit required
 
 Easy way to remember:
 
-```text
-@Target
-   ↓
-WHERE can annotation be used?
-
-@Retention
-   ↓
-HOW LONG does annotation survive?
+```mermaid
+graph TD
+    T[@Target] --> W[WHERE can annotation be used?]
+    R[@Retention] --> H[HOW LONG does annotation survive?]
 ```
 
 For example:
@@ -852,13 +833,11 @@ are annotations applied to our annotation.
 
 Conceptually:
 
-```text
-@Target
-@Retention
-    ↓
-@Audit
-    ↓
-method
+```mermaid
+graph TD
+    TT[@Target] --> A[@Audit]
+    RR[@Retention] --> A
+    A --> M[method]
 ```
 
 ---
@@ -1043,18 +1022,13 @@ class PaymentService {
 
 Spring can inspect classes and see:
 
-```text
-@Service
-    ↓
-metadata
-    ↓
-Spring scans classes
-    ↓
-finds @Service
-    ↓
-creates bean
-    ↓
-stores bean in ApplicationContext
+```mermaid
+graph TD
+    S[@Service] --> M[metadata]
+    M --> SSC[Spring scans classes]
+    SSC --> FS[finds @Service]
+    FS --> CB[creates bean]
+    CB --> SB[stores bean in ApplicationContext]
 ```
 
 Similarly:
@@ -1066,16 +1040,12 @@ private PaymentService paymentService;
 
 Spring sees:
 
-```text
-@Autowired
-     ↓
-reflection / framework metadata processing
-     ↓
-dependency required
-     ↓
-find matching bean
-     ↓
-inject dependency
+```mermaid
+graph TD
+    A2[@Autowired] --> RMP[reflection / framework metadata processing]
+    RMP --> DR[dependency required]
+    DR --> FMB[find matching bean]
+    FMB --> ID[inject dependency]
 ```
 
 The actual Spring implementation is much more sophisticated than simply calling reflection, but **the conceptual model is important for interviews**.
@@ -1168,14 +1138,12 @@ Compare:
 
 ### Traditional configuration
 
-```text
-Java code
-+
-XML
-+
-configuration files
-+
-framework configuration
+```mermaid
+graph TD
+    TC[Traditional configuration] --> JC[Java code]
+    TC --> XML[XML]
+    TC --> CF[configuration files]
+    TC --> FC[framework configuration]
 ```
 
 versus:
@@ -1314,16 +1282,12 @@ and generates the required code during compilation.
 
 Conceptually:
 
-```text
-Source Code
-    ↓
-Annotation Processor
-    ↓
-Generated code
-    ↓
-Compiler
-    ↓
-.class
+```mermaid
+graph TD
+    SC[Source Code] --> AP[Annotation Processor]
+    AP --> GC[Generated code]
+    GC --> C[Compiler]
+    C --> CF[.class]
 ```
 
 This is different from runtime reflection.
@@ -1682,16 +1646,12 @@ public void transferMoney() {
 
 Conceptually:
 
-```text
-caller
-   ↓
-Spring proxy
-   ↓
-start transaction
-   ↓
-transferMoney()
-   ↓
-commit / rollback
+```mermaid
+graph TD
+    C[caller] --> SP[Spring proxy]
+    SP --> ST[start transaction]
+    ST --> TM[transferMoney]
+    TM --> CR[commit / rollback]
 ```
 
 The annotation itself isn't performing the transaction.
@@ -1717,18 +1677,13 @@ don't think:
 
 Think:
 
-```text
-Annotation
-    ↓
-Spring startup
-    ↓
-component scanning / configuration processing
-    ↓
-metadata discovered
-    ↓
-Spring registers infrastructure
-    ↓
-HTTP request mapping created
+```mermaid
+graph TD
+    A[Annotation] --> SS[Spring startup]
+    SS --> CSC[component scanning / configuration processing]
+    CSC --> MD[metadata discovered]
+    MD --> SRI[Spring registers infrastructure]
+    SRI --> HRM[HTTP request mapping created]
 ```
 
 This mental model will help you understand Spring deeply rather than memorizing annotations.
@@ -1761,18 +1716,14 @@ Better interview answer:
 
 Then:
 
-```text
-caller
- ↓
-proxy
- ↓
-transaction begin
- ↓
-target method
- ↓
-success?
- ├── yes → commit
- └── no  → rollback according to rules
+```mermaid
+graph TD
+    C2[caller] --> P2[proxy]
+    P2 --> TB[transaction begin]
+    TB --> TM2[target method]
+    TM2 --> S[success?]
+    S --> Y2[yes → commit]
+    S --> N[no → rollback according to rules]
 ```
 
 That's a much stronger answer.
@@ -2452,16 +2403,12 @@ public @interface Override {
 
 So:
 
-```text
-@Override
-    ↓
-compiler sees it
-    ↓
-compiler validates it
-    ↓
-annotation is discarded
-    ↓
-.class file doesn't need it
+```mermaid
+graph TD
+    O[@Override] --> CS[compiler sees it]
+    CS --> CV[compiler validates it]
+    CV --> AD[annotation is discarded]
+    AD --> CF[.class file doesn't need it]
 ```
 
 This is why:
@@ -2492,14 +2439,11 @@ warning: oldMethod() is deprecated
 
 So again:
 
-```text
-Source
-  ↓
-Compiler
-  ↓
-sees @Deprecated
-  ↓
-generates warning
+```mermaid
+graph TD
+    S[Source] --> C[Compiler]
+    C --> SD[sees @Deprecated]
+    SD --> GW[generates warning]
 ```
 
 The annotation communicates metadata to compiler/tools.
@@ -2556,16 +2500,12 @@ Frameworks can inspect annotations at runtime or during framework startup.
 
 Typically:
 
-```text
-Annotation
-    ↓
-.class metadata
-    ↓
-framework
-    ↓
-reflection / metadata APIs
-    ↓
-framework behavior
+```mermaid
+graph TD
+    A[Annotation] --> CM[.class metadata]
+    CM --> F[framework]
+    F --> R[reflection / metadata APIs]
+    R --> FB[framework behavior]
 ```
 
 ---
@@ -2590,15 +2530,12 @@ The compiler has **specific rules and logic** for standard language annotations 
 
 For `@Override`, the compiler essentially performs a check equivalent to:
 
-```text
-Is this method overriding
-a superclass/interface method?
-
-       |
-   ┌───┴────┐
-   YES      NO
-    |        |
- compile    ERROR
+```mermaid
+graph TD
+    Q[Is this method overriding a superclass/interface method?] --> YES[YES]
+    Q --> NO2[NO]
+    YES --> C[compile]
+    NO2 --> E[ERROR]
 ```
 
 ---
@@ -2634,14 +2571,10 @@ You have to provide the processing mechanism.
 
 There are two major ways you can do this yourself:
 
-```text
-             @Important
-                  |
-          ┌───────┴────────┐
-          ↓                ↓
-      Reflection       Annotation
-      at runtime        Processor
-                         compile time
+```mermaid
+graph TD
+    I3[@Important] --> R[Reflection at runtime]
+    I3 --> AP[Annotation Processor compile time]
 ```
 
 Let's build both.
@@ -2726,16 +2659,12 @@ causes the runtime reflection system to inspect the class metadata.
 
 Conceptually:
 
-```text
-PaymentService.class
-       ↓
-class metadata
-       ↓
-annotation metadata
-       ↓
-@Important found?
-       ↓
-YES
+```mermaid
+graph TD
+    PC[PaymentService.class] --> CM[class metadata]
+    CM --> AM[annotation metadata]
+    AM --> IF[@Important found?]
+    IF --> YES[YES]
 ```
 
 That's runtime annotation processing.
@@ -3076,24 +3005,15 @@ An annotation processor is a program that runs **during compilation** and can in
 
 Think:
 
-```text
-javac
-  |
-  |---- parse source
-  |
-  |---- discover annotations
-  |
-  ↓
-Annotation Processor
-  |
-  |---- inspect @MyAnnotation
-  |
-  |---- validate
-  |
-  |---- generate source files
-  |
-  ↓
-compiler continues
+```mermaid
+graph TD
+    J[javac] --> PS[parse source]
+    J --> DA[discover annotations]
+    DA --> AP[Annotation Processor]
+    AP --> IM[inspect @MyAnnotation]
+    AP --> V[validate]
+    AP --> GS[generate source files]
+    GS --> CC[compiler continues]
 ```
 
 This is very different from reflection.
@@ -3286,22 +3206,33 @@ Constructor
 
 With annotation processing, you work with the **language model API**:
 
-```text
-Element
-TypeElement
-ExecutableElement
-VariableElement
+```mermaid
+graph TD
+    E[Element] --> TE[TypeElement]
+    E --> EE[ExecutableElement]
+    E --> VE[VariableElement]
 ```
 
 Think:
 
-```text
-Reflection                    Annotation Processing
-
-Class                         TypeElement
-Method                        ExecutableElement
-Field                         VariableElement
-Constructor                   ExecutableElement
+```mermaid
+graph TD
+    subgraph Reflection
+        R1[Class]
+        R2[Method]
+        R3[Field]
+        R4[Constructor]
+    end
+    subgraph AnnotationProcessing
+        A1[TypeElement]
+        A2[ExecutableElement]
+        A3[VariableElement]
+        A4[ExecutableElement]
+    end
+    R1 --> A1
+    R2 --> A2
+    R3 --> A3
+    R4 --> A4
 ```
 
 This distinction is extremely useful in interviews.
@@ -3438,16 +3369,12 @@ and generates an implementation during compilation.
 
 Conceptually:
 
-```text
-@Mapper
-   ↓
-Annotation Processor
-   ↓
-inspect UserMapper
-   ↓
-generate UserMapperImpl
-   ↓
-compile generated code
+```mermaid
+graph TD
+    M[@Mapper] --> AP2[Annotation Processor]
+    AP2 --> IU[inspect UserMapper]
+    IU --> G[generate UserMapperImpl]
+    G --> CGC[compile generated code]
 ```
 
 That's compile-time annotation processing.
@@ -3471,14 +3398,11 @@ Lombok processes those annotations during compilation and modifies/generates com
 
 Conceptually:
 
-```text
-@Getter
-   ↓
-Lombok processor
-   ↓
-getter information/code
-   ↓
-compiler
+```mermaid
+graph TD
+    G[@Getter] --> LP[Lombok processor]
+    LP --> GIC[getter information/code]
+    GIC --> C[compiler]
 ```
 
 The exact implementation details are more complex than simply generating a `.java` file, but the important interview concept is:
@@ -3491,18 +3415,19 @@ The exact implementation details are more complex than simply generating a `.jav
 
 This is worth memorizing:
 
-```text
-                         Annotation
-                              |
-             ┌────────────────┼────────────────┐
-             |                |                |
-             ↓                ↓                ↓
-         Compiler        Annotation        Runtime
-         semantics        Processor        Reflection
-             |                |                |
-         @Override         Lombok          Spring
-         @Deprecated       MapStruct       Hibernate
-         @Suppress...                     JUnit
+```mermaid
+graph TD
+    A[Annotation] --> CS[Compiler semantics]
+    A --> AP[Annotation Processor]
+    A --> RR[Runtime Reflection]
+    CS --> O[@Override]
+    CS --> D[@Deprecated]
+    CS --> SW[@SuppressWarnings]
+    AP --> L[Lombok]
+    AP --> M[MapStruct]
+    RR --> S[Spring]
+    RR --> H[Hibernate]
+    RR --> J[JUnit]
 ```
 
 ---
@@ -3518,16 +3443,12 @@ void print() {}
 
 The Java compiler understands what this means.
 
-```text
-javac
- ↓
-find @Override
- ↓
-check method
- ↓
-is it overriding?
- ↓
-NO → compilation error
+```mermaid
+graph TD
+    J[javac] --> FO[find @Override]
+    FO --> CM[check method]
+    CM --> IO[is it overriding?]
+    IO --> NO[NO → compilation error]
 ```
 
 ### Your annotation
@@ -3541,26 +3462,20 @@ Java compiler doesn't automatically know what `Important` means.
 
 Unless you provide an annotation processor:
 
-```text
-@Important
-   ↓
-javac
-   ↓
-your AnnotationProcessor
-   ↓
-your logic
+```mermaid
+graph TD
+    I[@Important] --> J[javac]
+    J --> YP[your AnnotationProcessor]
+    YP --> L[your logic]
 ```
 
 or process it at runtime:
 
-```text
-@Important
-   ↓
-.class
-   ↓
-Reflection
-   ↓
-your logic
+```mermaid
+graph TD
+    I2[@Important] --> CF[.class]
+    CF --> R[Reflection]
+    R --> L2[your logic]
 ```
 
 ---
@@ -3615,14 +3530,11 @@ class PaymentService {
 
 Compile:
 
-```text
-PaymentService.java
-       ↓
-      javac
-       ↓
-PaymentService.class
-       ↓
-annotation metadata stored
+```mermaid
+graph TD
+    PS[PaymentService.java] --> J[javac]
+    J --> PC[PaymentService.class]
+    PC --> AMS[annotation metadata stored]
 ```
 
 At runtime:
@@ -3750,23 +3662,13 @@ A production framework wouldn't necessarily manually invoke the method like our 
 
 It could create a proxy:
 
-```text
-Caller
-   |
-   ↓
-Proxy
-   |
-   ↓
-Does method have @Retry?
-   |
-   ↓
-Yes
-   |
-   ↓
-try
-  target.callPaymentService()
-catch
-  retry
+```mermaid
+graph TD
+    C[Caller] --> P[Proxy]
+    P --> Q[Does method have @Retry?]
+    Q --> Y[Yes]
+    Y --> TRY[try target.callPaymentService]
+    TRY --> CATCH[catch → retry]
 ```
 
 This is why annotations and AOP are so closely connected.
@@ -3859,14 +3761,11 @@ Remember this framework:
 
 ## Option 1 — Reflection
 
-```text
-Annotation
-   ↓
-.class
-   ↓
-runtime
-   ↓
-reflection
+```mermaid
+graph TD
+    A[Annotation] --> CF[.class]
+    CF --> R[runtime]
+    R --> REF[reflection]
 ```
 
 Use when:
@@ -3879,14 +3778,11 @@ Use when:
 
 ## Option 2 — Annotation Processor
 
-```text
-Annotation
-   ↓
-javac
-   ↓
-processor
-   ↓
-validate/generate code
+```mermaid
+graph TD
+    A2[Annotation] --> J[javac]
+    J --> P[processor]
+    P --> VG[validate/generate code]
 ```
 
 Use when:
@@ -3906,14 +3802,11 @@ Examples:
 
 ## Option 3 — Framework/AOP
 
-```text
-Annotation
-   ↓
-framework
-   ↓
-proxy/interceptor
-   ↓
-behavior
+```mermaid
+graph TD
+    A3[Annotation] --> F[framework]
+    F --> PI[proxy/interceptor]
+    PI --> B[behavior]
 ```
 
 Use for:
@@ -4023,44 +3916,33 @@ public void payment() {
 
 ### Compilation
 
-```text
-Java compiler
-      ↓
-checks syntax/types
-      ↓
-stores runtime annotation metadata
-      ↓
-PaymentService.class
+```mermaid
+graph TD
+    JC[Java compiler] --> CS[checks syntax/types]
+    CS --> SRM[stores runtime annotation metadata]
+    SRM --> PC[PaymentService.class]
 ```
 
 ### Application startup
 
 A framework can inspect:
 
-```text
-PaymentService.class
-      ↓
-find @RateLimit
-      ↓
-read requestsPerMinute = 10
-      ↓
-create configuration
+```mermaid
+graph TD
+    PC[PaymentService.class] --> FL[find @RateLimit]
+    FL --> RRPM[read requestsPerMinute = 10]
+    RRPM --> CC2[create configuration]
 ```
 
 ### Runtime request
 
-```text
-HTTP request
-     ↓
-proxy/interceptor
-     ↓
-check rate limit
-     ↓
-allowed?
-   /     \
- YES      NO
-  ↓       ↓
-method   429
+```mermaid
+graph TD
+    HR[HTTP request] --> PI[proxy/interceptor]
+    PI --> CRL[check rate limit]
+    CRL --> Q[allowed?]
+    Q --> YES[YES → method]
+    Q --> NO[NO → 429]
 ```
 
 The annotation itself never:
@@ -4071,14 +3953,11 @@ starts a rate limiter
 
 Instead:
 
-```text
-annotation
-    ↓
-metadata
-    ↓
-processor/framework
-    ↓
-actual behavior
+```mermaid
+graph TD
+    A[annotation] --> M[metadata]
+    M --> PF[processor/framework]
+    PF --> AB[actual behavior]
 ```
 
 That is the fundamental concept you want to carry into Spring Boot and system design.
@@ -4087,23 +3966,21 @@ That is the fundamental concept you want to carry into Spring Boot and system de
 
 ## The one diagram I'd memorize for interviews
 
-```text
-                    JAVA ANNOTATION
-                          |
-             ┌────────────┼─────────────┐
-             ↓            ↓             ↓
-         Compiler      Compile-time    Runtime
-         semantics      Processor      Framework
-             |             |             |
-        @Override       Lombok        Spring
-        @Deprecated     MapStruct      Hibernate
-             |             |             |
-             ↓             ↓             ↓
-          validate      generate       metadata
-                        code           / proxy
-                                         |
-                                         ↓
-                                      behavior
+```mermaid
+graph TD
+    JA[JAVA ANNOTATION] --> CS[Compiler semantics]
+    JA --> CP[Compile-time Processor]
+    JA --> RF[Runtime Framework]
+    CS --> O[@Override]
+    CS --> D[@Deprecated]
+    CP --> L[Lombok]
+    CP --> M[MapStruct]
+    RF --> S[Spring]
+    RF --> H[Hibernate]
+    CS --> V[validate]
+    CP --> GC[generate code]
+    RF --> MM[metadata / proxy]
+    MM --> B[behavior]
 ```
 
 And the golden rule:

@@ -51,21 +51,16 @@ Shared by threads.
 
 For example:
 
-```text
-JVM
-│
-├── Heap
-│
-├── Metaspace
-│
-├── Thread 1
-│   └── Stack 1
-│
-├── Thread 2
-│   └── Stack 2
-│
-└── Thread 3
-    └── Stack 3
+```mermaid
+graph TD
+    JVM[JVM] --> H[Heap]
+    JVM --> M[Metaspace]
+    JVM --> T1[Thread 1]
+    JVM --> T2[Thread 2]
+    JVM --> T3[Thread 3]
+    T1 --> S1[Stack 1]
+    T2 --> S2[Stack 2]
+    T3 --> S3[Stack 3]
 ```
 
 This is fundamental to understanding Java concurrency.
@@ -250,16 +245,12 @@ When `calculate()` returns, its frame is removed.
 
 A JVM stack frame conceptually contains:
 
-```text
-Stack Frame
-│
-├── Local Variable Array
-│
-├── Operand Stack
-│
-├── Reference to Runtime Constant Pool
-│
-└── Other implementation-specific information
+```mermaid
+graph TD
+    SF[Stack Frame] --> LVA[Local Variable Array]
+    SF --> OS[Operand Stack]
+    SF --> RRCP[Reference to Runtime Constant Pool]
+    SF --> OI[Other implementation-specific information]
 ```
 
 These three are particularly important:
