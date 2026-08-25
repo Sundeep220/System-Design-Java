@@ -12,6 +12,8 @@ This folder is a comprehensive knowledge base for Java, JVM internals, microserv
 | `JVM Basics/` | JVM internals: architecture, class loading, memory areas, GC, JIT, diagnostics (profiling, thread/heap dumps) | `JVM Basics/README.md` |
 | `Multithreading/` | Java threading: ThreadLocal, locks, synchronization, concurrent utilities | `Multithreading/README.md` |
 | `ConcurrentCollections/` | Thread-safe collections: ConcurrentHashMap, blocking queues, CopyOnWrite, skip lists | `ConcurrentCollections/README.md` |
+| `HTTP/` | HTTP/1.1 vs HTTP/2 vs HTTP/3, request/response anatomy, headers, cookies, status codes, caching, ETags, keep-alive | `HTTP/README.md` |
+| `Security/` | TLS vs SSL, TLS handshake, X.509 certificates, mTLS (microservice auth, Istio), SSH (key auth, tunneling, CI/CD), TLS vs SSH comparison | `Security/README.md` |
 | `ConsistentHashing/` | The hash ring algorithm behind Kafka, Cassandra, DynamoDB | `ConsistentHashing/README.md` |
 | `SpringBootRoadmap/` | Spring Boot concepts, project structure, and practice project guide | `SpringBootRoadmap/README.md` |
 | `MicroserviceRoadmap/` | Microservice patterns, design principles, and architecture guide | `MicroserviceRoadmap/README.md` |
