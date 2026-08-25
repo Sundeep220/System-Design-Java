@@ -15,6 +15,7 @@ This folder is a comprehensive knowledge base for Java, JVM internals, microserv
 | `HTTP/` | HTTP/1.1 vs HTTP/2 vs HTTP/3, request/response anatomy, headers, cookies, status codes, caching, ETags, keep-alive | `HTTP/README.md` |
 | `Security/` | TLS vs SSL, TLS handshake, X.509 certificates, mTLS (microservice auth, Istio), SSH (key auth, tunneling, CI/CD), TLS vs SSH comparison | `Security/README.md` |
 | `ConsistentHashing/` | The hash ring algorithm behind Kafka, Cassandra, DynamoDB | `ConsistentHashing/README.md` |
+| `DistributedSystems/` | Core distributed systems building blocks: Bloom Filters, SSTables (LSM Tree), Gossip Protocol, Anti-Entropy, Vector Clocks, MVCC, CRDTs | `DistributedSystems/README.md` |
 | `SpringBootRoadmap/` | Spring Boot concepts, project structure, and practice project guide | `SpringBootRoadmap/README.md` |
 | `MicroserviceRoadmap/` | Microservice patterns, design principles, and architecture guide | `MicroserviceRoadmap/README.md` |
 
@@ -61,10 +62,16 @@ ConcurrentCollections/README.md
   6. ConcurrentCollections/ConcurrentSkipList/
 ```
 
-### Phase 4 — System Design (Week 8)
+### Phase 4 — System Design (Weeks 8-9)
 ```
 ConsistentHashing/README.md
   1. ConsistentHashing/consistent_hashing_detailed_notes.md
+
+DistributedSystems/README.md
+  2. DistributedSystems/BloomFilter/
+  3. DistributedSystems/SSTable/
+  4. DistributedSystems/GossipProtocol/
+  5. DistributedSystems/VectorClocks/
 ```
 
 ### Phase 5 — Spring Boot & Microservices (Weeks 9-10)
@@ -95,7 +102,8 @@ JVM Basics/JavaMemoryModel → Multithreading/ThreadLocal → ConcurrentCollecti
 
 ### System Design interview
 ```
-ConsistentHashing → MicroserviceRoadmap
+ConsistentHashing → DistributedSystems/BloomFilter → DistributedSystems/SSTable
+→ DistributedSystems/GossipProtocol → DistributedSystems/VectorClocks → MicroserviceRoadmap
 ```
 
 ### Spring Boot interview
@@ -133,6 +141,14 @@ Multithreading/ThreadLocal
 ConcurrentCollections/ (all topics)
     ↓
 ConsistentHashing/
+    ↓
+DistributedSystems/BloomFilter
+    ↓
+DistributedSystems/SSTable
+    ↓
+DistributedSystems/GossipProtocol
+    ↓
+DistributedSystems/VectorClocks
     ↓
 SpringBootRoadmap/ + MicroserviceRoadmap/
 ```
