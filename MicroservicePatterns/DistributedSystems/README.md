@@ -12,9 +12,10 @@ Core data structures and algorithms that power every large-scale distributed sys
 | 2 | `SSTable/` | Log-Structured Merge Tree (LSM), MemTable, write/read paths, compaction, tombstones, B-Tree comparison | Cassandra, RocksDB, HBase, LevelDB |
 | 3 | `GossipProtocol/` | Gossip dissemination, anti-entropy (Merkle trees, Read Repair), failure detection (Phi Accrual), gossip vs service discovery | Cassandra, Consul, Redis Cluster, Akka |
 | 4 | `VectorClocks/` | Replication inconsistency, LWW, vector clocks, causality detection, conflict resolution, CRDTs, MVCC | Amazon Dynamo, Riak, CockroachDB |
-| 5 | `../ConsistentHashing/` | Hash ring, virtual nodes, partition assignment, rebalancing | Cassandra, DynamoDB, Kafka |
+| 5 | `Quorum/` | W+R>N formula, coordinator role, read/write quorum, sloppy quorum, hinted handoff, LOCAL_QUORUM, Raft quorum, multi-DC | Cassandra, DynamoDB, etcd, Raft |
+| 6 | `../ConsistentHashing/` | Hash ring, virtual nodes, partition assignment, rebalancing | Cassandra, DynamoDB, Kafka |
 
-> **Read order matters**: BloomFilter and SSTable are components inside larger systems (Cassandra uses both). Gossip explains how these systems coordinate. VectorClocks explains how they handle the conflicts that coordination can't prevent. ConsistentHashing explains how they partition data.
+> **Read order matters**: BloomFilter and SSTable are components inside larger systems (Cassandra uses both). Gossip explains how these systems coordinate. VectorClocks explains how they handle the conflicts that coordination can't prevent. Quorum explains how reads stay consistent despite stale replicas. ConsistentHashing explains how they partition data.
 
 ---
 
@@ -37,7 +38,11 @@ You have a distributed key-value store (like Cassandra):
    → Token ring positions, which nodes are UP/DOWN, schema versions
    → Anti-entropy (Merkle trees) syncs data between replicas
 
-5. VECTOR CLOCKS (or LWW) resolves WHAT HAPPENS WHEN REPLICAS DIVERGE
+5. QUORUM is how reads stay CONSISTENT even when replicas are stale
+   → W+R>N guarantees overlap between write set and read set
+   → Coordinator reads from R replicas, returns newest, repairs stale ones
+
+6. VECTOR CLOCKS (or LWW) resolves WHAT HAPPENS WHEN REPLICAS DIVERGE
    → Two nodes accepted concurrent writes to the same key
    → Which version wins? Or: detect conflict → let app merge
 ```
@@ -48,7 +53,8 @@ graph TD
     ST --> BF["Bloom Filter\nSkip non-matching SSTables"]
     CH --> GP["Gossip Protocol\nNodes discover each other's status"]
     GP --> AE["Anti-Entropy\nSync stale replicas using Merkle trees"]
-    AE --> VC["Vector Clocks\nDetect + resolve conflicts from concurrent writes"]
+    AE --> Q["Quorum\nW+R>N guarantees consistency despite stale replicas"]
+    Q --> VC["Vector Clocks\nDetect + resolve conflicts from concurrent writes"]
 ```
 
 ---
@@ -70,6 +76,7 @@ Failure detection: Phi Accrual vs naive timeout
 
 ### Consistency and Conflict
 ```
+Quorum: W+R>N → read/write overlap → consistency guarantee
 LWW → clock skew → data loss risk
 Vector clocks → concurrent write detection → application merge
 Lamport timestamps vs vector clocks
