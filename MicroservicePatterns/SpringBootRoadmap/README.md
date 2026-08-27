@@ -779,6 +779,45 @@ Deep dive:
 
 You should be able to identify N+1 from logs and fix it.
 
+### Practical: LazyInitializationException (FlowForge — Step 4)
+
+One of the most common Hibernate errors. Hit this while building the FlowForge CRUD endpoints.
+
+**What happened:**
+
+`Workflow` has a `@OneToMany` lazy `steps` collection. The service method (`findById`) runs inside a `@Transactional` boundary, loads the `Workflow`, and returns it. The controller then calls `workflowMapper.toDetail(workflow)` which accesses `workflow.getSteps()` — but by this point the Hibernate session is already closed.
+
+```text
+Controller.getById(id)
+  │
+  ├─► workflowService.findById(id)     ← Transaction OPENS
+  │     └─ repo.findById(id)           ← Loads Workflow (NOT steps)
+  │                                     ← Transaction CLOSES (session gone)
+  │
+  └─► workflowMapper.toDetail(workflow) ← Runs OUTSIDE transaction
+        └─ workflow.getSteps()          ← 💥 LazyInitializationException
+```
+
+The returned entity is **detached** — no longer managed by Hibernate. Accessing any uninitialized lazy proxy on a detached entity throws this exception.
+
+**Root cause:** Transaction boundary ends at the service method return. Lazy collection accessed after session closes.
+
+**Fix:** Use `JOIN FETCH` to eagerly load the collection within the same query:
+
+```java
+// Repository
+@Query("SELECT w FROM Workflow w LEFT JOIN FETCH w.steps WHERE w.id = :id")
+Optional<Workflow> findByIdWithSteps(UUID id);
+```
+
+This forces Hibernate to load steps in one SQL query. The returned `steps` is a fully initialized `ArrayList`, not a lazy proxy — no session needed after that.
+
+**Key rules:**
+- If you return an entity from a `@Transactional` method and access lazy collections outside that method → exception
+- `open-in-view: false` (which we set) means no session leaks into the controller — this is correct but means you must be explicit about fetching
+- `open-in-view: true` (Spring default) would silently keep the session open in the view layer — hides the problem but causes N+1 queries and long-held DB connections
+- Prefer `JOIN FETCH` or `@EntityGraph` over `FetchType.EAGER` — eager on the mapping loads the collection for *every* query, even when you don't need it
+
 ---
 
 # PHASE 21 — TRANSACTIONS — Very Deep
