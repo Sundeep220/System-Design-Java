@@ -4,10 +4,12 @@ import com.flowforge.flowforge.dto.CursorPageResponse;
 import com.flowforge.flowforge.dto.PageResponse;
 import com.flowforge.flowforge.dto.WorkflowCreateRequest;
 import com.flowforge.flowforge.dto.WorkflowDetailResponse;
+import com.flowforge.flowforge.dto.WorkflowFilterRequest;
 import com.flowforge.flowforge.dto.WorkflowPatchRequest;
 import com.flowforge.flowforge.dto.WorkflowSummaryResponse;
 import com.flowforge.flowforge.dto.WorkflowUpdateRequest;
 import com.flowforge.flowforge.entity.Workflow;
+import com.flowforge.flowforge.entity.WorkflowStatus;
 import com.flowforge.flowforge.mapper.WorkflowMapper;
 import com.flowforge.flowforge.service.WorkflowService;
 import com.flowforge.flowforge.validation.group.OnCreate;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -52,8 +55,19 @@ public class WorkflowController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<WorkflowSummaryResponse>> list(Pageable pageable) {
-        Page<WorkflowSummaryResponse> page = workflowService.findAll(pageable)
+    public ResponseEntity<PageResponse<WorkflowSummaryResponse>> list(
+            Pageable pageable,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) WorkflowStatus status,
+            @RequestParam(required = false) Integer minRetries,
+            @RequestParam(required = false) Integer maxRetries,
+            @RequestParam(required = false) Instant createdAfter,
+            @RequestParam(required = false) Instant createdBefore) {
+
+        WorkflowFilterRequest filter = new WorkflowFilterRequest(
+                search, status, minRetries, maxRetries, createdAfter, createdBefore);
+
+        Page<WorkflowSummaryResponse> page = workflowService.findAll(filter, pageable)
                 .map(workflowMapper::toSummary);
         return ResponseEntity.ok(workflowMapper.toPageResponse(page));
     }

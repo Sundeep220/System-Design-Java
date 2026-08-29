@@ -2,6 +2,7 @@ package com.flowforge.flowforge.service;
 
 import com.flowforge.flowforge.dto.CursorPageResponse;
 import com.flowforge.flowforge.dto.WorkflowCreateRequest;
+import com.flowforge.flowforge.dto.WorkflowFilterRequest;
 import com.flowforge.flowforge.dto.WorkflowPatchRequest;
 import com.flowforge.flowforge.dto.WorkflowSummaryResponse;
 import com.flowforge.flowforge.dto.WorkflowUpdateRequest;
@@ -9,9 +10,12 @@ import com.flowforge.flowforge.entity.Workflow;
 import com.flowforge.flowforge.exception.ResourceNotFoundException;
 import com.flowforge.flowforge.mapper.WorkflowMapper;
 import com.flowforge.flowforge.repository.WorkflowRepository;
+import com.flowforge.flowforge.specification.SortValidator;
+import com.flowforge.flowforge.specification.WorkflowSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -29,10 +33,14 @@ public class WorkflowService {
 
     private final WorkflowRepository workflowRepository;
     private final WorkflowMapper workflowMapper;
+    private final SortValidator sortValidator;
 
-    public WorkflowService(WorkflowRepository workflowRepository, WorkflowMapper workflowMapper) {
+    public WorkflowService(WorkflowRepository workflowRepository,
+                           WorkflowMapper workflowMapper,
+                           SortValidator sortValidator) {
         this.workflowRepository = workflowRepository;
         this.workflowMapper = workflowMapper;
+        this.sortValidator = sortValidator;
     }
 
     @Transactional
@@ -41,8 +49,31 @@ public class WorkflowService {
         return workflowRepository.save(workflow);
     }
 
-    public Page<Workflow> findAll(Pageable pageable) {
-        return workflowRepository.findAll(pageable);
+    public Page<Workflow> findAll(WorkflowFilterRequest filter, Pageable pageable) {
+        sortValidator.validate(pageable.getSort());
+
+        Specification<Workflow> spec = (root, query, cb) -> null;
+
+        if (filter.search() != null && !filter.search().isBlank()) {
+            spec = spec.and(WorkflowSpecification.search(filter.search()));
+        }
+        if (filter.status() != null) {
+            spec = spec.and(WorkflowSpecification.hasStatus(filter.status()));
+        }
+        if (filter.minRetries() != null) {
+            spec = spec.and(WorkflowSpecification.minRetries(filter.minRetries()));
+        }
+        if (filter.maxRetries() != null) {
+            spec = spec.and(WorkflowSpecification.maxRetries(filter.maxRetries()));
+        }
+        if (filter.createdAfter() != null) {
+            spec = spec.and(WorkflowSpecification.createdAfter(filter.createdAfter()));
+        }
+        if (filter.createdBefore() != null) {
+            spec = spec.and(WorkflowSpecification.createdBefore(filter.createdBefore()));
+        }
+
+        return workflowRepository.findAll(spec, pageable);
     }
 
     public Workflow findById(UUID id) {

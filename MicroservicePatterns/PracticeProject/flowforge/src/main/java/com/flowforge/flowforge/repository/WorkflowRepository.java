@@ -2,6 +2,7 @@ package com.flowforge.flowforge.repository;
 
 import com.flowforge.flowforge.entity.Workflow;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.Instant;
@@ -9,7 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface WorkflowRepository extends JpaRepository<Workflow, UUID> {
+public interface WorkflowRepository extends JpaRepository<Workflow, UUID>,
+        JpaSpecificationExecutor<Workflow> {
 
     @Query("SELECT w FROM Workflow w LEFT JOIN FETCH w.steps WHERE w.id = :id")
     Optional<Workflow> findByIdWithSteps(UUID id);
