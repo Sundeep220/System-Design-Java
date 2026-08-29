@@ -12,6 +12,7 @@ import com.flowforge.flowforge.mapper.WorkflowMapper;
 import com.flowforge.flowforge.repository.WorkflowRepository;
 import com.flowforge.flowforge.specification.SortValidator;
 import com.flowforge.flowforge.specification.WorkflowSpecification;
+import org.springframework.core.env.Environment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -34,13 +36,16 @@ public class WorkflowService {
     private final WorkflowRepository workflowRepository;
     private final WorkflowMapper workflowMapper;
     private final SortValidator sortValidator;
+    private final boolean fullTextEnabled;
 
     public WorkflowService(WorkflowRepository workflowRepository,
                            WorkflowMapper workflowMapper,
-                           SortValidator sortValidator) {
+                           SortValidator sortValidator,
+                           Environment environment) {
         this.workflowRepository = workflowRepository;
         this.workflowMapper = workflowMapper;
         this.sortValidator = sortValidator;
+        this.fullTextEnabled = Arrays.asList(environment.getActiveProfiles()).contains("postgres");
     }
 
     @Transactional
@@ -52,6 +57,18 @@ public class WorkflowService {
     public Page<Workflow> findAll(WorkflowFilterRequest filter, Pageable pageable) {
         sortValidator.validate(pageable.getSort());
 
+        // PostgreSQL full-text search: uses tsvector/tsquery with GIN index and relevance ranking
+        if (fullTextEnabled && filter.search() != null && !filter.search().isBlank()) {
+            String statusStr = filter.status() != null ? filter.status().name() : null;
+            Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            return workflowRepository.fullTextSearch(
+                    filter.search(), statusStr,
+                    filter.minRetries(), filter.maxRetries(),
+                    filter.createdAfter(), filter.createdBefore(),
+                    unsorted);
+        }
+
+        // H2 fallback: LIKE-based search via JPA Specifications
         Specification<Workflow> spec = (root, query, cb) -> null;
 
         if (filter.search() != null && !filter.search().isBlank()) {

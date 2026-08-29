@@ -1045,4 +1045,145 @@ ERROR LogExecutionAspect : ✖ WorkflowService.findByIdWithSteps() threw Resourc
 
 ---
 
+## Step 12b: PostgreSQL Full-Text Search
+
+> **Prerequisite:** Run with `postgres` profile (default).
+> Create the database first: `CREATE DATABASE flowforge;`
+> The app uses `ddl-auto: create-drop` and runs `schema-postgres.sql` to create the GIN index.
+
+### Setup: Seed test data
+
+Create several workflows with varied names and descriptions:
+
+```
+POST /api/v1/workflows
+{ "name": "Order Processing Pipeline", "description": "Handles payment processing and order fulfillment", "maxRetries": 3, "timeoutSeconds": 60 }
+
+POST /api/v1/workflows
+{ "name": "User Notification Service", "description": "Sends email and SMS notifications to users", "maxRetries": 5, "timeoutSeconds": 30 }
+
+POST /api/v1/workflows
+{ "name": "Payment Gateway Integration", "description": "Processes credit card payments via Stripe", "maxRetries": 2, "timeoutSeconds": 45 }
+
+POST /api/v1/workflows
+{ "name": "Data Export Pipeline", "description": "Exports analytics data to CSV and sends reports", "maxRetries": 1, "timeoutSeconds": 120 }
+
+POST /api/v1/workflows
+{ "name": "Inventory Sync", "description": "Synchronizes inventory levels across warehouses", "maxRetries": 4, "timeoutSeconds": 90 }
+```
+
+---
+
+### Full-Text Search Tests
+
+#### 72. Basic full-text search — single word
+
+```
+GET /api/v1/workflows?search=payment
+```
+
+**Expected:** `200 OK` — returns workflows containing "payment" in name OR description
+- "Order Processing Pipeline" (description has "payment processing")
+- "Payment Gateway Integration" (name has "Payment")
+- Results ordered by **relevance rank** (not alphabetically)
+
+#### 73. Stemming — search for different word forms
+
+```
+GET /api/v1/workflows?search=process
+```
+
+**Expected:** `200 OK` — PostgreSQL stemming matches:
+- "Order Processing Pipeline" (matches "processing" → stem "process")
+- "Payment Gateway Integration" (matches "Processes" → stem "process")
+
+```text
+This is the magic of full-text search:
+  "process" matches "processing", "processes", "processed"
+  LIKE search would NOT match "processing" when searching "process"
+```
+
+#### 74. Multi-word search — implicit AND
+
+```
+GET /api/v1/workflows?search=payment order
+```
+
+**Expected:** `200 OK` — returns workflows matching BOTH "payment" AND "order"
+- "Order Processing Pipeline" (has both in name+description)
+- `plainto_tsquery` treats multiple words as AND by default
+
+#### 75. No results — unmatched term
+
+```
+GET /api/v1/workflows?search=kubernetes
+```
+
+**Expected:** `200 OK` with empty content:
+```json
+{
+  "content": [],
+  "totalElements": 0
+}
+```
+
+#### 76. Full-text search combined with filters
+
+```
+GET /api/v1/workflows?search=payment&minRetries=3
+```
+
+**Expected:** `200 OK` — only workflows matching "payment" AND maxRetries >= 3
+- "Order Processing Pipeline" (has "payment" + maxRetries=3)
+- "Payment Gateway Integration" excluded (maxRetries=2 < 3)
+
+#### 77. Full-text search combined with status filter
+
+```
+PATCH /api/v1/workflows/{payment-gateway-id}
+{ "status": "ACTIVE" }
+
+GET /api/v1/workflows?search=payment&status=ACTIVE
+```
+
+**Expected:** `200 OK` — only ACTIVE workflows matching "payment"
+- "Payment Gateway Integration" (ACTIVE + matches "payment")
+- "Order Processing Pipeline" excluded (still DRAFT)
+
+#### 78. Relevance ranking — most relevant first
+
+```
+GET /api/v1/workflows?search=notification
+```
+
+**Expected:** `200 OK`
+- "User Notification Service" should rank **first** (word in name = higher relevance)
+- Any workflows with "notification" only in description rank lower
+
+#### 79. Stop words are ignored
+
+```
+GET /api/v1/workflows?search=the and or
+```
+
+**Expected:** `200 OK` — empty or all results
+```text
+PostgreSQL ignores stop words: "the", "and", "or", "is", "a", etc.
+These are too common to be meaningful for search.
+```
+
+#### 80. Compare LIKE vs Full-Text — switch to H2 profile
+
+```
+# Start with: -Dspring.profiles.active=h2
+GET /api/v1/workflows?search=process
+```
+
+**Expected:** `200 OK` — LIKE search does NOT match "processing"
+- LIKE `%process%` matches "processing" (substring match)
+- But LIKE `%process%` won't match stemmed forms like "processed"
+- Full-text search handles ALL word forms via stemming
+
+---
+
 <!-- New test sections will be added below as we build more features -->
