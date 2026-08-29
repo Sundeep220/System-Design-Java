@@ -249,7 +249,7 @@ Status: `DONE`
 - Combine with pagination
 - **Concepts:** JPA Specifications, Criteria API, Dynamic queries, Database indexes
 
-Status: `PENDING`
+Status: `DONE`
 
 ---
 
@@ -259,7 +259,7 @@ Status: `PENDING`
 - Combine with filtering, sorting, and pagination in one endpoint
 - **Concepts:** Database search, Dynamic querying, Query optimization
 
-Status: `PENDING`
+Status: `DONE`
 
 ---
 
@@ -270,7 +270,7 @@ Status: `PENDING`
 - Register interceptor via WebMvcConfigurer
 - **Concepts:** Spring MVC Filters vs Interceptors, Filter chain, OncePerRequestFilter
 
-Status: `PENDING`
+Status: `DONE`
 
 ---
 
@@ -279,12 +279,12 @@ Status: `PENDING`
 - Apply to all service methods via pointcut
 - Demonstrate self-invocation trap (and fix)
 - Verify proxy creation with AopUtils.isAopProxy()
-- Use Spring Framework 7's built-in @Retryable (no spring-retry dependency needed)
-- Use @ConcurrencyLimit for throttling
-- Add @EnableResilience to activate
+- ~~Use Spring Framework 7's built-in @Retryable~~ → deferred (needs verification for Spring Boot 4.1.x)
+- ~~Use @ConcurrencyLimit for throttling~~ → deferred
+- ~~Add @EnableResilience to activate~~ → deferred
 - **Concepts:** AOP, CGLIB Proxies, Pointcuts, @Around, Self-invocation, Built-in retry
 
-Status: `PENDING`
+Status: `DONE` (AOP core implemented; resilience annotations deferred — need to verify availability in Spring Boot 4.1.x)
 
 ---
 

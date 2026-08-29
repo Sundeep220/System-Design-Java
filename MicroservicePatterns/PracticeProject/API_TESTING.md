@@ -542,4 +542,507 @@ GET /api/v1/workflows?mode=cursor&limit=-5
 
 ---
 
+## Step 9: Filtering + Sorting
+
+Filtering uses JPA Specifications. Sorting uses Spring Data's `?sort=` parameter with a whitelist validator.
+
+### Filtering
+
+#### 29. Filter by status
+
+```
+GET /api/v1/workflows?status=ACTIVE
+```
+
+**Expected:** `200 OK` — only workflows with `status: ACTIVE`
+
+Try each status value:
+
+```
+GET /api/v1/workflows?status=DRAFT
+GET /api/v1/workflows?status=PAUSED
+GET /api/v1/workflows?status=ARCHIVED
+```
+
+#### 30. Filter by minimum retries
+
+```
+GET /api/v1/workflows?minRetries=3
+```
+
+**Expected:** `200 OK` — only workflows with `maxRetries >= 3`
+
+#### 31. Filter by maximum retries
+
+```
+GET /api/v1/workflows?maxRetries=5
+```
+
+**Expected:** `200 OK` — only workflows with `maxRetries <= 5`
+
+#### 32. Filter by retry range
+
+```
+GET /api/v1/workflows?minRetries=2&maxRetries=5
+```
+
+**Expected:** `200 OK` — only workflows with `2 <= maxRetries <= 5`
+
+#### 33. Filter by created after
+
+```
+GET /api/v1/workflows?createdAfter=2025-01-01T00:00:00Z
+```
+
+**Expected:** `200 OK` — only workflows created on or after Jan 1, 2025
+
+#### 34. Filter by created before
+
+```
+GET /api/v1/workflows?createdBefore=2027-01-01T00:00:00Z
+```
+
+**Expected:** `200 OK` — only workflows created on or before Jan 1, 2027
+
+#### 35. Filter by date range
+
+```
+GET /api/v1/workflows?createdAfter=2025-01-01T00:00:00Z&createdBefore=2027-01-01T00:00:00Z
+```
+
+**Expected:** `200 OK` — only workflows created within the date range
+
+#### 36. Combine multiple filters
+
+```
+GET /api/v1/workflows?status=ACTIVE&minRetries=3
+```
+
+**Expected:** `200 OK` — only ACTIVE workflows with 3+ retries
+
+```
+GET /api/v1/workflows?status=DRAFT&maxRetries=2&createdAfter=2025-01-01T00:00:00Z
+```
+
+**Expected:** `200 OK` — DRAFT workflows with at most 2 retries, created after Jan 1 2025
+
+#### 37. No filters (returns all)
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK` — all workflows (same as before, backward compatible)
+
+#### 38. Filter with no matches
+
+```
+GET /api/v1/workflows?status=ARCHIVED
+```
+
+**Expected:** `200 OK` — empty content array, `totalElements: 0`
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "first": true,
+  "last": true
+}
+```
+
+#### 39. Invalid status value
+
+```
+GET /api/v1/workflows?status=INVALID_STATUS
+```
+
+**Expected:** `400 Bad Request` — Spring cannot convert to `WorkflowStatus` enum
+
+---
+
+### Sorting
+
+#### 40. Sort by name ascending
+
+```
+GET /api/v1/workflows?sort=name,asc
+```
+
+**Expected:** `200 OK` — workflows sorted alphabetically by name (A → Z)
+
+#### 41. Sort by name descending
+
+```
+GET /api/v1/workflows?sort=name,desc
+```
+
+**Expected:** `200 OK` — workflows sorted reverse alphabetically (Z → A)
+
+#### 42. Sort by createdAt descending (newest first)
+
+```
+GET /api/v1/workflows?sort=createdAt,desc
+```
+
+**Expected:** `200 OK` — newest workflows first
+
+#### 43. Sort by default direction (ascending)
+
+```
+GET /api/v1/workflows?sort=name
+```
+
+**Expected:** `200 OK` — sorted by name ascending (asc is default when direction omitted)
+
+#### 44. Multi-column sort
+
+```
+GET /api/v1/workflows?sort=status,asc&sort=createdAt,desc
+```
+
+**Expected:** `200 OK` — sorted by status alphabetically, then by newest first within same status
+
+```
+GET /api/v1/workflows?sort=maxRetries,desc&sort=name,asc
+```
+
+**Expected:** `200 OK` — highest retries first, then alphabetically within same retry count
+
+#### 45. Invalid sort field (whitelist rejection)
+
+```
+GET /api/v1/workflows?sort=password,asc
+```
+
+**Expected:** `400 Bad Request`
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "errorCode": "INVALID_SORT_FIELD",
+  "message": "Invalid sort field: 'password'. Allowed fields: [name, status, maxRetries, timeoutSeconds, createdAt, updatedAt]"
+}
+```
+
+#### 46. Another invalid sort field
+
+```
+GET /api/v1/workflows?sort=id,asc
+```
+
+**Expected:** `400 Bad Request` — `id` is not in the whitelist
+
+#### 47. Invalid field in multi-column sort
+
+```
+GET /api/v1/workflows?sort=name,asc&sort=secret,desc
+```
+
+**Expected:** `400 Bad Request` — `secret` is not in the whitelist (entire request rejected)
+
+---
+
+### Combined: Filtering + Sorting + Pagination
+
+#### 48. Filter + sort
+
+```
+GET /api/v1/workflows?status=ACTIVE&sort=name,asc
+```
+
+**Expected:** `200 OK` — only ACTIVE workflows, sorted by name
+
+#### 49. Filter + sort + pagination
+
+```
+GET /api/v1/workflows?status=DRAFT&minRetries=2&sort=createdAt,desc&page=0&size=5
+```
+
+**Expected:** `200 OK` — DRAFT workflows with 2+ retries, newest first, 5 per page
+
+#### 50. All parameters combined
+
+```
+GET /api/v1/workflows?status=ACTIVE&minRetries=1&maxRetries=10&createdAfter=2025-01-01T00:00:00Z&createdBefore=2027-12-31T23:59:59Z&sort=maxRetries,desc&sort=name,asc&page=0&size=10
+```
+
+**Expected:** `200 OK` — ACTIVE workflows with 1-10 retries, created in 2025-2027, sorted by retries desc then name asc, page 0 with 10 items
+
+### Allowed sort fields
+
+| Field | Example |
+|---|---|
+| `name` | `?sort=name,asc` |
+| `status` | `?sort=status,desc` |
+| `maxRetries` | `?sort=maxRetries,asc` |
+| `timeoutSeconds` | `?sort=timeoutSeconds,desc` |
+| `createdAt` | `?sort=createdAt,desc` |
+| `updatedAt` | `?sort=updatedAt,asc` |
+
+---
+
+## Step 10: Searching
+
+A single `?search=` parameter performs case-insensitive LIKE search across `name` AND `description` fields. Combines with all existing filters, sorting, and pagination.
+
+### Basic Search
+
+#### 51. Search by name
+
+```
+GET /api/v1/workflows?search=order
+```
+
+**Expected:** `200 OK` — workflows where name OR description contains "order" (case-insensitive)
+
+#### 52. Search by description keyword
+
+```
+GET /api/v1/workflows?search=payment
+```
+
+**Expected:** `200 OK` — matches workflows with "payment" in name or description
+
+#### 53. Case-insensitive search
+
+```
+GET /api/v1/workflows?search=ORDER
+GET /api/v1/workflows?search=Order
+GET /api/v1/workflows?search=order
+```
+
+**Expected:** All three return the same results
+
+#### 54. Partial match
+
+```
+GET /api/v1/workflows?search=pay
+```
+
+**Expected:** `200 OK` — matches "Payment Pipeline", "Refund Payment", etc. (substring match)
+
+#### 55. No results
+
+```
+GET /api/v1/workflows?search=xyznonexistent
+```
+
+**Expected:** `200 OK` — empty content, `totalElements: 0`
+
+#### 56. Empty / blank search (ignored)
+
+```
+GET /api/v1/workflows?search=
+GET /api/v1/workflows?search=   
+```
+
+**Expected:** `200 OK` — returns all workflows (blank search is treated as no filter)
+
+---
+
+### Search + Filters + Sort + Pagination
+
+#### 57. Search + status filter
+
+```
+GET /api/v1/workflows?search=order&status=ACTIVE
+```
+
+**Expected:** `200 OK` — ACTIVE workflows matching "order" in name or description
+
+#### 58. Search + sort
+
+```
+GET /api/v1/workflows?search=process&sort=createdAt,desc
+```
+
+**Expected:** `200 OK` — workflows matching "process", newest first
+
+#### 59. Search + filter + sort + pagination
+
+```
+GET /api/v1/workflows?search=pipe&status=DRAFT&sort=name,asc&page=0&size=5
+```
+
+**Expected:** `200 OK` — DRAFT workflows matching "pipe", sorted by name, 5 per page
+
+#### 60. Everything combined
+
+```
+GET /api/v1/workflows?search=work&status=ACTIVE&minRetries=2&maxRetries=8&createdAfter=2025-01-01T00:00:00Z&sort=createdAt,desc&sort=name,asc&page=0&size=10
+```
+
+**Expected:** `200 OK` — ACTIVE workflows matching "work" with 2-8 retries, created after 2025, sorted by date then name, 10 per page
+
+---
+
+## Step 11: Filter + Interceptor
+
+### X-Request-Id Header (RequestIdFilter)
+
+#### 61. Auto-generated request ID
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK`
+- Response header `X-Request-Id` is present with a UUID value
+- Example: `X-Request-Id: 3f2504e0-4f89-11d3-9a0c-0305e82c3301`
+
+#### 62. Client-provided request ID (passthrough)
+
+```
+GET /api/v1/workflows
+X-Request-Id: my-custom-id-123
+```
+
+**Expected:** `200 OK`
+- Response header `X-Request-Id: my-custom-id-123` (same value echoed back)
+
+---
+
+### Request Timing (RequestTimingFilter)
+
+#### 63. Check server logs for timing
+
+Make any request:
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** Server console logs a line like:
+```
+INFO  ... RequestTimingFilter : GET /api/v1/workflows 200 — 45 ms
+```
+
+Verify it shows: method, URI, status code, and duration in milliseconds.
+
+---
+
+### Rate Limiting (RateLimitInterceptor)
+
+#### 64. Rate limit headers present
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK`
+- `X-RateLimit-Limit: 50`
+- `X-RateLimit-Remaining: 49` (or less)
+
+#### 65. Rate limit exceeded
+
+Send more than 50 requests within 1 minute to any `/api/**` endpoint.
+
+**Expected:** `429 Too Many Requests`
+- `Retry-After: 45` (seconds remaining in current window)
+
+```json
+{
+  "status": 429,
+  "error": "Too Many Requests",
+  "errorCode": "RATE_LIMIT_EXCEEDED",
+  "message": "You have exceeded the rate limit. Try again in 45 seconds."
+}
+```
+
+#### 66. Rate limit resets after window
+
+Wait 1 minute after hitting the limit, then:
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK` — rate limit window has reset, `X-RateLimit-Remaining` back to `49`
+
+#### 67. Rate limit only applies to /api/** paths
+
+```
+GET /h2-console
+```
+
+**Expected:** Not rate-limited (interceptor only applies to `/api/**`)
+
+---
+
+## Step 12: Custom AOP Aspect
+
+### AOP Proxy Verification
+
+#### 68. Check AOP proxy info
+
+```
+GET /api/v1/debug/aop
+```
+
+**Expected:** `200 OK`
+```json
+{
+  "isAopProxy": true,
+  "isCglibProxy": true,
+  "targetClass": "WorkflowService",
+  "actualClass": "WorkflowService$$SpringCGLIB$$0"
+}
+```
+
+- `isAopProxy: true` confirms Spring wrapped the service in a proxy
+- `actualClass` contains `$$SpringCGLIB$$` proving CGLIB subclass proxying
+
+---
+
+### @LogExecution Aspect Logging
+
+#### 69. Verify aspect logs on create
+
+```
+POST /api/v1/workflows
+Content-Type: application/json
+
+{
+  "name": "AOP Test Workflow",
+  "description": "Testing aspect logging",
+  "maxRetries": 3,
+  "timeoutSeconds": 30
+}
+```
+
+**Expected:** `201 Created` + server console shows:
+```
+INFO  LogExecutionAspect : → WorkflowService.create() called with 1 arg(s): [WorkflowCreateRequest]
+INFO  LogExecutionAspect : ← WorkflowService.create() returned in 45 ms
+```
+
+#### 70. Verify aspect logs on findAll
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK` + server console shows:
+```
+INFO  LogExecutionAspect : → WorkflowService.findAll() called with 2 arg(s): [WorkflowFilterRequest, PageRequest]
+INFO  LogExecutionAspect : ← WorkflowService.findAll() returned in 12 ms
+```
+
+#### 71. Verify aspect logs exception
+
+```
+GET /api/v1/workflows/00000000-0000-0000-0000-000000000000
+```
+
+**Expected:** `404 Not Found` + server console shows:
+```
+INFO  LogExecutionAspect : → WorkflowService.findByIdWithSteps() called with 1 arg(s): [UUID]
+ERROR LogExecutionAspect : ✖ WorkflowService.findByIdWithSteps() threw ResourceNotFoundException after 5 ms: Workflow not found with id: 00000000-...
+```
+
+---
+
 <!-- New test sections will be added below as we build more features -->
