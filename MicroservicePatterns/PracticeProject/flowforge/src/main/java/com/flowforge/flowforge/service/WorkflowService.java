@@ -13,10 +13,13 @@ import com.flowforge.flowforge.repository.WorkflowRepository;
 import com.flowforge.flowforge.specification.SortValidator;
 import com.flowforge.flowforge.specification.WorkflowSpecification;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.resilience.annotation.ConcurrencyLimit;
+import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -48,12 +51,14 @@ public class WorkflowService {
         this.fullTextEnabled = Arrays.asList(environment.getActiveProfiles()).contains("postgres");
     }
 
+    @Retryable(includes = TransientDataAccessException.class, maxRetries = 3, delay = 500)
     @Transactional
     public Workflow create(WorkflowCreateRequest request) {
         Workflow workflow = workflowMapper.toEntity(request);
         return workflowRepository.save(workflow);
     }
 
+    @ConcurrencyLimit(5)
     public Page<Workflow> findAll(WorkflowFilterRequest filter, Pageable pageable) {
         sortValidator.validate(pageable.getSort());
 
@@ -167,4 +172,16 @@ public class WorkflowService {
     }
 
     private record CursorData(Instant createdAt, UUID id) {}
+
+    // --- Retry demonstration ---
+
+    @Retryable(maxRetries = 3, delay = 1000, jitter = 200)
+    public String simulateTransientFailure() {
+        double random = Math.random();
+        if (random < 0.6) {
+            throw new RuntimeException(
+                    "Simulated transient failure (random=" + String.format("%.2f", random) + ")");
+        }
+        return "Success (random=" + String.format("%.2f", random) + ")";
+    }
 }

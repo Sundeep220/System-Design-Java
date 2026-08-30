@@ -1,0 +1,18 @@
+# --- Development profile ---
+# Use with: --spring.profiles.active=dev,postgres (or dev,h2)
+# This is the default when no profiles are explicitly set.
+
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.flowforge: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG

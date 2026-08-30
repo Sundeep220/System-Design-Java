@@ -1,0 +1,36 @@
+# --- Production profile ---
+# Use with: --spring.profiles.active=prod
+# ALL secrets must come from environment variables — no defaults.
+
+spring:
+  datasource:
+    url: ${FLOWFORGE_DB_URL}
+    username: ${FLOWFORGE_DB_USERNAME}
+    password: ${FLOWFORGE_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    defer-datasource-initialization: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  sql:
+    init:
+      mode: never
+
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: WARN
+    com.flowforge: INFO
+    org.springframework.web: WARN

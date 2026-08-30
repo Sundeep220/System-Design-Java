@@ -1,13 +1,33 @@
+# --- Shared defaults (all profiles) ---
+# Profile-specific overrides: application-dev.yaml, application-prod.yaml
+# Database-specific overrides: application-postgres.yaml, application-h2.yaml
+
 spring:
   application:
     name: flowforge
 
   profiles:
-    default: postgres
+    default: dev,postgres
 
   jpa:
-    show-sql: true
     open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
+
+  threads:
+    virtual:
+      enabled: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  shutdown: graceful
+
+# --- FlowForge custom properties (bound via @ConfigurationProperties) ---
+flowforge:
+  execution:
+    default-max-retries: 3
+    default-timeout-seconds: 60
+  rate-limit:
+    max-requests: 50
+    window-seconds: 60

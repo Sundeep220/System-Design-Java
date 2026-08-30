@@ -1186,4 +1186,252 @@ GET /api/v1/workflows?search=process
 
 ---
 
+## Step 12c: Built-in Resilience (@Retryable + @ConcurrencyLimit)
+
+> Spring Framework 7's built-in resilience annotations. Enabled via `@EnableResilientMethods`.
+> Package: `org.springframework.resilience.annotation`
+
+### @Retryable Demo
+
+#### 81. Simulate transient failure (retry in action)
+
+```
+GET /api/v1/debug/retry
+```
+
+**Expected:** `200 OK` (most of the time)
+```json
+{
+  "result": "Success (random=0.73)"
+}
+```
+
+Server console shows retry attempts via `@LogExecution` aspect:
+```
+INFO  LogExecutionAspect : → WorkflowService.simulateTransientFailure() called with 0 arg(s): []
+ERROR LogExecutionAspect : ✖ WorkflowService.simulateTransientFailure() threw RuntimeException after 0 ms: Simulated transient failure (random=0.42)
+INFO  LogExecutionAspect : → WorkflowService.simulateTransientFailure() called with 0 arg(s): []
+INFO  LogExecutionAspect : ← WorkflowService.simulateTransientFailure() returned in 0 ms
+```
+
+- Method has 60% chance of failing per attempt
+- `@Retryable(maxRetries = 3)` gives 4 total attempts (1 initial + 3 retries)
+- Probability all 4 fail: 0.6^4 ≈ 13% — so most calls succeed
+- If all retries fail: `500 Internal Server Error`
+
+#### 82. Verify @Retryable on create() (production-style)
+
+```
+POST /api/v1/workflows
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Retry Test Workflow",
+  "description": "Tests @Retryable on create",
+  "maxRetries": 3,
+  "timeoutSeconds": 60
+}
+```
+
+**Expected:** `201 Created`
+- `@Retryable(includes = TransientDataAccessException.class)` is on `create()`
+- Under normal conditions, no retries occur
+- If Postgres has a transient connection blip, Spring automatically retries up to 3 times
+
+### @ConcurrencyLimit on findAll()
+
+#### 83. Verify concurrency throttling
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK`
+- `@ConcurrencyLimit(5)` on `findAll()` limits to 5 concurrent executions
+- Under normal single-client testing, this has no visible effect
+- Under load (6+ simultaneous requests), excess threads block until a slot opens
+- Useful with virtual threads where there's no thread pool limit
+
+---
+
+## Step 13: Configuration Management
+
+### Profile Verification
+
+#### 84. Check active profiles and config values
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** `200 OK`
+```json
+{
+  "activeProfiles": ["dev", "postgres"],
+  "flowforge.execution.defaultMaxRetries": 3,
+  "flowforge.execution.defaultTimeoutSeconds": 60,
+  "flowforge.rateLimit.maxRequests": 50,
+  "flowforge.rateLimit.windowSeconds": 60,
+  "spring.threads.virtual.enabled": "true",
+  "server.port": "8080",
+  "currentThread": "VirtualThread[#51]/runnable@ForkJoinPool-1-worker-1"
+}
+```
+
+Key things to verify:
+- `activeProfiles` includes both `dev` and `postgres`
+- `currentThread` contains `VirtualThread` (proves virtual threads are enabled)
+- All `flowforge.*` values match `application.yaml` defaults
+
+---
+
+### Virtual Threads Verification
+
+#### 85. Confirm virtual threads are active
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** The `currentThread` field should show `VirtualThread[...]`
+
+```text
+Without virtual threads:  Thread[tomcat-handler-1,5,main]
+With virtual threads:     VirtualThread[#51]/runnable@ForkJoinPool-1-worker-1
+```
+
+This confirms `spring.threads.virtual.enabled=true` is working.
+
+---
+
+### @ConfigurationProperties Verification
+
+#### 86. Rate limit uses configured values
+
+```
+GET /api/v1/workflows
+```
+
+**Expected:** `200 OK`
+- `X-RateLimit-Limit: 50` (from `flowforge.rate-limit.max-requests`)
+- `X-RateLimit-Remaining: 49`
+
+These values now come from `FlowForgeProperties` (not hardcoded).
+
+---
+
+### Property Override Precedence
+
+#### 87. Default values from YAML
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** `flowforge.execution.defaultMaxRetries: 3` (from `application.yaml`)
+
+#### 88. Override via environment variable
+
+Set env var, then restart:
+```
+FLOWFORGE_EXECUTION_DEFAULT_MAX_RETRIES=10
+```
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** `flowforge.execution.defaultMaxRetries: 10` (env var overrides YAML)
+
+#### 89. Override via CLI argument
+
+```
+java -jar flowforge.jar --flowforge.execution.default-max-retries=99
+```
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** `flowforge.execution.defaultMaxRetries: 99` (CLI overrides both YAML and env var)
+
+```text
+Precedence (lowest to highest):
+  1. application.yaml defaults
+  2. Profile-specific YAML (application-dev.yaml)
+  3. Environment variables (FLOWFORGE_EXECUTION_DEFAULT_MAX_RETRIES)
+  4. CLI arguments (--flowforge.execution.default-max-retries=99)
+```
+
+---
+
+### Profile Switching
+
+#### 90. Run with H2 instead of Postgres
+
+```
+java -jar flowforge.jar --spring.profiles.active=dev,h2
+```
+
+```
+GET /api/v1/debug/config
+```
+
+**Expected:** `activeProfiles: ["dev", "h2"]`
+- H2 console available at `/h2-console`
+- No Postgres connection needed
+
+#### 91. Run with production profile
+
+```
+# Set required env vars first:
+FLOWFORGE_DB_URL=jdbc:postgresql://prod-host:5432/flowforge
+FLOWFORGE_DB_USERNAME=app_user
+FLOWFORGE_DB_PASSWORD=secret
+
+java -jar flowforge.jar --spring.profiles.active=prod
+```
+
+**Expected:**
+- `activeProfiles: ["prod"]`
+- `ddl-auto: validate` (won't create/drop tables)
+- `show-sql: false`
+- `sql.init.mode: never` (no schema scripts)
+- Logging at WARN/INFO level (not DEBUG)
+- DataSeeder does NOT run (`@Profile("!prod")`)
+
+---
+
+### Configuration File Summary
+
+```text
+File                          Purpose                             Active When
+------------------------------------------------------------------------------------
+application.yaml              Shared defaults (all profiles)      Always
+application-dev.yaml           DEBUG logging, show-sql, create-drop  Profile: dev
+application-prod.yaml          ENV vars, INFO logging, validate     Profile: prod
+application-postgres.yaml      PostgreSQL datasource                Profile: postgres
+application-h2.yaml            H2 in-memory datasource              Profile: h2
+
+Default profiles: dev,postgres (when nothing is explicitly set)
+Production:       --spring.profiles.active=prod
+```
+
+### @ConfigurationProperties Record
+
+```text
+Prefix: flowforge
+
+Property                                  Type    Default   Bound To
+------------------------------------------------------------------------
+flowforge.execution.default-max-retries    int     3        FlowForgeProperties.Execution
+flowforge.execution.default-timeout-seconds int    60        FlowForgeProperties.Execution
+flowforge.rate-limit.max-requests          int     50        FlowForgeProperties.RateLimit
+flowforge.rate-limit.window-seconds        int     60        FlowForgeProperties.RateLimit
+```
+
+---
+
 <!-- New test sections will be added below as we build more features -->

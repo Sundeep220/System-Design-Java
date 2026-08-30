@@ -948,4 +948,9 @@ This is the power of AOP -- zero coupling between concern and target.
    - LogExecutionAspect: logs entry, exit, duration, and exceptions
    - serviceLayer() pointcut: auto-applies to ALL service methods
    - DebugController: /api/v1/debug/aop verifies proxy creation
+
+6. BUILT-IN RESILIENCE (Spring Framework 7)
+   - @Retryable, @ConcurrencyLimit, @EnableResilientMethods
+   - All implemented via AOP proxies (same mechanism as @Transactional)
+   - See dedicated deep-dive: SpringBootRoadmap/Resilience/README.md
 ```

@@ -1,5 +1,6 @@
 package com.flowforge.flowforge.interceptor;
 
+import com.flowforge.flowforge.config.FlowForgeProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -17,10 +18,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
-    private static final int MAX_REQUESTS_PER_WINDOW = 50;
-    private static final long WINDOW_MS = 60_000; // 1 minute
-
+    private final int maxRequests;
+    private final long windowMs;
     private final Map<String, ClientWindow> clients = new ConcurrentHashMap<>();
+
+    public RateLimitInterceptor(FlowForgeProperties properties) {
+        this.maxRequests = properties.rateLimit().maxRequests();
+        this.windowMs = properties.rateLimit().windowSeconds() * 1_000L;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request,
@@ -30,7 +35,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String clientIp = request.getRemoteAddr();
         ClientWindow window = clients.compute(clientIp, (ip, existing) -> {
             long now = System.currentTimeMillis();
-            if (existing == null || now - existing.windowStart > WINDOW_MS) {
+            if (existing == null || now - existing.windowStart > windowMs) {
                 return new ClientWindow(now, new AtomicInteger(1));
             }
             existing.count.incrementAndGet();
@@ -38,14 +43,14 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         });
 
         int currentCount = window.count.get();
-        int remaining = Math.max(0, MAX_REQUESTS_PER_WINDOW - currentCount);
+        int remaining = Math.max(0, maxRequests - currentCount);
 
-        response.setIntHeader("X-RateLimit-Limit", MAX_REQUESTS_PER_WINDOW);
+        response.setIntHeader("X-RateLimit-Limit", maxRequests);
         response.setIntHeader("X-RateLimit-Remaining", remaining);
 
-        if (currentCount > MAX_REQUESTS_PER_WINDOW) {
+        if (currentCount > maxRequests) {
             long elapsedMs = System.currentTimeMillis() - window.windowStart;
-            long retryAfterSeconds = Math.max(1, (WINDOW_MS - elapsedMs) / 1_000);
+            long retryAfterSeconds = Math.max(1, (windowMs - elapsedMs) / 1_000);
 
             log.warn("Rate limit exceeded for IP: {}", clientIp);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
