@@ -144,6 +144,399 @@ graph TB
     style PC fill:#ffd,stroke:#333
 ```
 
+### How EntityManager Is Created and Managed
+
+```text
+FACTORY PATTERN:
+
+  EntityManagerFactory (EMF)
+    │
+    │  createEntityManager()
+    ↓
+  EntityManager (EM)
+    │
+    │  manages
+    ↓
+  Persistence Context (PC)
+
+  EntityManagerFactory = HEAVY object (created once at app startup)
+    - Reads persistence.xml or application.yaml
+    - Builds metadata about all @Entity classes
+    - Creates connection pool
+    - One per database
+
+  EntityManager = LIGHTWEIGHT object (created per transaction)
+    - Created from the factory
+    - Owns one persistence context
+    - Not thread-safe! (one per thread / per request)
+
+IN SPRING BOOT:
+
+  Spring auto-creates the EntityManagerFactory at startup.
+  You NEVER create EntityManager manually. Spring does it per request.
+
+  WHEN YOU INJECT:
+    @PersistenceContext
+    private EntityManager entityManager;
+
+  This is NOT a real EntityManager — it's a PROXY (SharedEntityManagerCreator).
+  Each time you call a method on it, the proxy:
+    1. Looks up the current thread's transaction
+    2. Gets the actual EntityManager bound to that transaction
+    3. Delegates the call
+
+  So the injected EntityManager is THREAD-SAFE (because it's a proxy).
+  The real EntityManager underneath is NOT thread-safe (one per TX).
+
+@PersistenceContext vs @Autowired:
+
+  @PersistenceContext
+  private EntityManager em;      // ✅ Correct — injects TX-scoped proxy
+
+  @Autowired
+  private EntityManager em;      // ⚠️ Works in Spring Boot (same proxy)
+                                 // But @PersistenceContext is the JPA standard
+
+  Both work in Spring Boot, but @PersistenceContext is more explicit
+  and portable across JPA implementations.
+```
+
+```mermaid
+sequenceDiagram
+    participant T as Thread / Request
+    participant P as EM Proxy<br/>(SharedEntityManager)
+    participant TX as Transaction
+    participant EM as Real EntityManager
+    participant PC as Persistence Context
+
+    T->>P: em.find(Workflow.class, id)
+    P->>TX: Get current transaction
+    TX->>EM: Get/create EntityManager for this TX
+    P->>EM: Delegate find() call
+    EM->>PC: Check persistence context
+    PC-->>EM: Cache hit or DB query
+    EM-->>P: Return entity
+    P-->>T: Return entity
+
+    Note over P: Proxy is thread-safe<br/>Real EM is NOT
+```
+
+### Deep Dive: Every EntityManager Operation
+
+```text
+──────────────────────────────────────────────────────────────
+persist(entity)
+──────────────────────────────────────────────────────────────
+  STATE CHANGE: TRANSIENT → MANAGED
+  SQL: INSERT (at flush time, not immediately)
+
+  Workflow wf = new Workflow("Deploy", Status.ACTIVE);  // TRANSIENT
+  em.persist(wf);                                       // → MANAGED
+
+  WHAT HAPPENS INTERNALLY:
+    1. Hibernate checks: does this entity already have an ID?
+       - @GeneratedValue(UUID) → Hibernate generates UUID NOW
+       - @GeneratedValue(IDENTITY) → ID assigned AFTER INSERT (DB auto-increment)
+       - @GeneratedValue(SEQUENCE) → Hibernate calls nextval() NOW to get ID
+    2. Entity is added to the persistence context (the Map<ID, Entity>)
+    3. A snapshot of the entity's current state is saved
+    4. An INSERT action is queued in the ActionQueue
+    5. NO SQL is sent to the database yet
+
+  RULES:
+    - Must be TRANSIENT (not already managed or detached)
+    - If entity already exists in PC → EntityExistsException
+    - persist() returns VOID — the same object becomes managed
+    - If you persist an entity with cascades (CascadeType.PERSIST),
+      all related new entities are also persisted
+
+  COMMON MISTAKE:
+    Workflow wf = new Workflow();
+    wf.setId(UUID.randomUUID());  // manually set ID
+    em.persist(wf);               // works — but ID is not "generated"
+
+    // Later:
+    Workflow wf2 = new Workflow();
+    wf2.setId(wf.getId());        // same ID!
+    em.persist(wf2);              // EntityExistsException!
+
+──────────────────────────────────────────────────────────────
+find(Class, id)
+──────────────────────────────────────────────────────────────
+  RETURNS: Entity or null (never throws for missing entity)
+  SQL: SELECT (only if not in persistence context)
+
+  Workflow wf = em.find(Workflow.class, id);
+  // wf is MANAGED (if found) or null (if not found)
+
+  WHAT HAPPENS INTERNALLY:
+    1. Check persistence context: is entity with this ID already there?
+       → YES: return it immediately (NO database query)
+       → NO: go to step 2
+    2. Execute SELECT * FROM workflows WHERE id = ?
+    3. If row found:
+       a) Create entity object from row data
+       b) Put it in the persistence context
+       c) Take a snapshot of its state
+       d) Return the MANAGED entity
+    4. If row NOT found: return null
+
+  IDENTITY MAP GUARANTEE:
+    Workflow w1 = em.find(Workflow.class, id);  // hits DB
+    Workflow w2 = em.find(Workflow.class, id);  // returns from PC
+    assert w1 == w2;   // true! Same Java object reference
+    // Only ONE database query was executed
+
+  find() vs getReference():
+    find()         → EAGER load. Hits DB immediately. Returns entity or null.
+    getReference() → LAZY load. Returns a PROXY. DB hit on first field access.
+
+    Workflow proxy = em.getReference(Workflow.class, id);
+    // No SELECT yet! proxy is a placeholder
+    proxy.getName();
+    // NOW: SELECT * FROM workflows WHERE id = ?
+    // If entity doesn't exist → EntityNotFoundException
+
+    USE getReference() WHEN:
+      - You need the entity just to set a foreign key relationship
+      - You know the entity exists (e.g., setting a parent reference)
+      Step step = new Step("Build");
+      step.setWorkflow(em.getReference(Workflow.class, workflowId));
+      // Avoids loading the entire Workflow just to set the FK
+      em.persist(step);
+      // INSERT INTO steps (name, workflow_id) VALUES ('Build', ?)
+
+──────────────────────────────────────────────────────────────
+merge(entity)
+──────────────────────────────────────────────────────────────
+  STATE CHANGE: DETACHED → returns a NEW MANAGED copy
+  SQL: SELECT (to load current state) + UPDATE (at flush)
+
+  Workflow detached = getFromSomewhere();  // detached entity
+  detached.setName("Updated");
+  Workflow managed = em.merge(detached);
+
+  WHAT HAPPENS INTERNALLY:
+    1. Check PC: is there a managed entity with this ID?
+       → YES: copy state from detached onto the managed entity. Return managed.
+       → NO: go to step 2
+    2. Load entity from DB: SELECT * FROM workflows WHERE id = ?
+       → Row found: create managed entity, copy state from detached. Return.
+       → Row NOT found: create a NEW managed entity (effectively an INSERT)
+    3. Take a snapshot of the merged state
+    4. At flush: compare current vs snapshot → generate UPDATE if needed
+
+  CRITICAL — merge() RETURNS A DIFFERENT OBJECT:
+    Workflow detached = ...;
+    Workflow managed = em.merge(detached);
+
+    detached == managed   → FALSE (different objects!)
+    detached.setName("X") → NOT tracked
+    managed.setName("X")  → tracked by dirty checking ✅
+
+    COMMON BUG:
+      em.merge(detached);           // ← return value IGNORED!
+      detached.setName("New");      // ← NOT tracked! Change is lost.
+
+    FIX:
+      detached = em.merge(detached); // reassign to the managed copy
+
+  merge() vs persist():
+    persist(): TRANSIENT → MANAGED. Same object. INSERT.
+    merge():   DETACHED → new MANAGED copy. Different object. SELECT + UPDATE.
+
+──────────────────────────────────────────────────────────────
+remove(entity)
+──────────────────────────────────────────────────────────────
+  STATE CHANGE: MANAGED → REMOVED
+  SQL: DELETE (at flush time)
+
+  Workflow wf = em.find(Workflow.class, id);  // MANAGED
+  em.remove(wf);                               // → REMOVED
+
+  WHAT HAPPENS INTERNALLY:
+    1. Verify entity is MANAGED (must be in persistence context)
+       → If DETACHED: IllegalArgumentException
+       → If TRANSIENT: IllegalArgumentException
+    2. Schedule DELETE action in the ActionQueue
+    3. Entity state changes to REMOVED
+    4. At flush: DELETE FROM workflows WHERE id = ?
+    5. After flush: entity is detached (no longer in PC)
+
+  COMMON MISTAKE — removing a detached entity:
+    Workflow wf = getFromAPI();  // detached
+    em.remove(wf);              // ❌ IllegalArgumentException!
+
+    FIX: find it first, then remove:
+    Workflow managed = em.find(Workflow.class, wf.getId());
+    em.remove(managed);  // ✅
+
+    OR: merge then remove:
+    Workflow managed = em.merge(wf);
+    em.remove(managed);  // ✅
+
+  CASCADE DELETE:
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.REMOVE)
+    private List<Step> steps;
+
+    em.remove(workflow);
+    // Also deletes all steps! Hibernate generates:
+    // DELETE FROM steps WHERE workflow_id = ?
+    // DELETE FROM workflows WHERE id = ?
+
+    ⚠️ Be careful: CascadeType.ALL includes REMOVE.
+    Accidentally cascading deletes can wipe related data.
+
+──────────────────────────────────────────────────────────────
+refresh(entity)
+──────────────────────────────────────────────────────────────
+  DISCARDS in-memory changes. Reloads from database.
+  SQL: SELECT (always, even if entity is in PC)
+
+  Workflow wf = em.find(Workflow.class, id);
+  wf.setName("Changed in memory");
+
+  em.refresh(wf);
+  // SELECT * FROM workflows WHERE id = ?
+  // wf.getName() → original name from DB (in-memory change discarded)
+
+  USE CASES:
+    - Another process updated the row and you need fresh data
+    - You made in-memory changes you want to UNDO
+    - After a native SQL UPDATE that bypassed Hibernate
+
+  RULES:
+    - Entity must be MANAGED (if detached → IllegalArgumentException)
+    - Overwrites ALL fields (including any changes you made)
+    - Also refreshes relationships if cascade = REFRESH
+
+  TRICKY:
+    em.refresh() IGNORES the persistence context cache.
+    It ALWAYS hits the database. This is different from find(),
+    which returns from PC if entity is already there.
+
+──────────────────────────────────────────────────────────────
+contains(entity) / detach(entity) / clear()
+──────────────────────────────────────────────────────────────
+
+  em.contains(wf)  → true if wf is MANAGED in this persistence context
+                   → false if TRANSIENT, DETACHED, or REMOVED
+
+  em.detach(wf)    → removes ONE entity from PC → becomes DETACHED
+                   → future changes to wf are NOT tracked
+
+  em.clear()       → removes ALL entities from PC → all become DETACHED
+                   → persistence context is empty
+                   → useful for batch processing to free memory
+
+  BATCH PROCESSING EXAMPLE:
+    for (int i = 0; i < 100_000; i++) {
+        em.persist(new Workflow("WF-" + i));
+        if (i % 1000 == 0) {
+            em.flush();   // send 1000 INSERTs to DB
+            em.clear();   // free 1000 entities from memory
+        }
+    }
+    // Without clear(): 100,000 entities in PC → OutOfMemoryError
+    // With clear(): max 1,000 at a time
+```
+
+### EntityManager Query Methods
+
+```text
+EntityManager can also create and execute queries:
+
+  JPQL QUERIES:
+    List<Workflow> results = em.createQuery(
+        "SELECT w FROM Workflow w WHERE w.status = :status", Workflow.class)
+        .setParameter("status", "ACTIVE")
+        .getResultList();
+    // Returns MANAGED entities (all tracked by dirty checking)
+
+  NATIVE SQL QUERIES:
+    List<Object[]> results = em.createNativeQuery(
+        "SELECT id, name FROM workflows WHERE status = ?")
+        .setParameter(1, "ACTIVE")
+        .getResultList();
+    // Returns raw arrays, NOT managed entities
+
+  NATIVE SQL → Entity:
+    Workflow wf = (Workflow) em.createNativeQuery(
+        "SELECT * FROM workflows WHERE id = ?", Workflow.class)
+        .setParameter(1, id)
+        .getSingleResult();
+    // Returns MANAGED entity (if mapped to entity class)
+
+  CRITERIA API (programmatic query building):
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+    CriteriaQuery<Workflow> cq = cb.createQuery(Workflow.class);
+    Root<Workflow> root = cq.from(Workflow.class);
+    cq.select(root).where(cb.equal(root.get("status"), "ACTIVE"));
+    List<Workflow> results = em.createQuery(cq).getResultList();
+    // Type-safe, no string-based queries. Good for dynamic filters.
+
+  NAMED QUERIES:
+    @Entity
+    @NamedQuery(
+        name = "Workflow.findActive",
+        query = "SELECT w FROM Workflow w WHERE w.status = 'ACTIVE'"
+    )
+    public class Workflow { ... }
+
+    List<Workflow> active = em.createNamedQuery(
+        "Workflow.findActive", Workflow.class).getResultList();
+    // Compiled at startup → catches JPQL errors early
+
+QUERY RETURN TYPES:
+  getResultList()   → List<T>     (empty list if nothing found)
+  getSingleResult() → T           (throws if 0 or 2+ results!)
+  getResultStream() → Stream<T>   (lazy, for large result sets)
+
+  getSingleResult() PITFALL:
+    NoResultException → if no result found
+    NonUniqueResultException → if more than one result
+    Better alternative: Spring Data's Optional<T> or getResultList().
+```
+
+### When to Use EntityManager Directly (vs Repository)
+
+```text
+Spring Data JPA repositories handle 90% of use cases.
+Use EntityManager directly when you need:
+
+  1. BULK OPERATIONS (bypass entity lifecycle for performance):
+     int updated = em.createQuery(
+         "UPDATE Workflow w SET w.status = 'ARCHIVED' WHERE w.createdAt < :date")
+         .setParameter("date", sixMonthsAgo)
+         .executeUpdate();
+     // Updates 10,000 rows in ONE SQL statement
+     // No entities loaded, no dirty checking, no cascades
+     // ⚠️ Bypasses persistence context — cached entities are STALE
+
+  2. FLUSH + CLEAR for batch inserts:
+     for (int i = 0; i < 100_000; i++) {
+         em.persist(new Workflow("WF-" + i));
+         if (i % 500 == 0) { em.flush(); em.clear(); }
+     }
+
+  3. NATIVE SQL that doesn't map to entities:
+     BigInteger count = (BigInteger) em.createNativeQuery(
+         "SELECT COUNT(*) FROM pg_stat_activity WHERE state = 'active'")
+         .getSingleResult();
+
+  4. DYNAMIC QUERIES with Criteria API:
+     // Build query based on runtime filters (status, date range, etc.)
+     CriteriaBuilder cb = em.getCriteriaBuilder();
+     // ... dynamic predicate building
+
+  5. refresh() to reload stale entity:
+     em.refresh(entity);  // no repository equivalent
+
+  6. getReference() for lazy proxy:
+     Workflow ref = em.getReference(Workflow.class, id);
+     // No SELECT — just a proxy for FK assignment
+```
+
 ### Spring Boot: You Rarely Use EntityManager Directly
 
 ```text
@@ -163,6 +556,37 @@ Spring Data JPA wraps EntityManager behind repositories:
 
   @PersistenceContext
   private EntityManager entityManager;
+```
+
+```mermaid
+graph TB
+    subgraph "EntityManager Operations"
+        P["persist()"] -->|"TRANSIENT → MANAGED"| PC["Persistence Context"]
+        F["find()"] -->|"DB or PC → MANAGED"| PC
+        M["merge()"] -->|"DETACHED → new MANAGED"| PC
+        R["remove()"] -->|"MANAGED → REMOVED"| PC
+        RF["refresh()"] -->|"DB → overwrite MANAGED"| PC
+        D["detach()"] -->|"MANAGED → DETACHED"| OUT["Out of PC"]
+        CL["clear()"] -->|"ALL → DETACHED"| OUT
+    end
+
+    PC -->|"flush()"| DB[(Database)]
+    PC -->|"contains()"| CHECK{{"true/false"}}
+
+    subgraph "Query Methods"
+        JPQL["createQuery() — JPQL"]
+        NQ["createNativeQuery() — SQL"]
+        CQ["CriteriaBuilder — Type-safe"]
+        NMD["createNamedQuery() — Pre-compiled"]
+    end
+
+    JPQL --> PC
+    NQ --> DB
+    CQ --> PC
+    NMD --> PC
+
+    style PC fill:#dfd,stroke:#393
+    style DB fill:#ddf,stroke:#339
 ```
 
 ---

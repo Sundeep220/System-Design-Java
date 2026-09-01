@@ -538,7 +538,497 @@ RULE OF THUMB:
 
 ---
 
-## 8. Interview Questions
+## 8. Which Caching Strategy for Which System
+
+```text
+CACHE-ASIDE (Lazy Loading)
+  THE DEFAULT — use this unless you have a specific reason not to.
+
+  SYSTEMS:
+    - E-commerce product pages (Amazon, Flipkart)
+    - User profile lookups (Twitter, LinkedIn)
+    - REST API responses
+    - Any read-heavy CRUD application
+
+  WHY: simple, only caches what's actually requested (hot data),
+  gracefully falls back to DB if cache is down.
+
+  SPRING BOOT:
+    @Cacheable(value = "products", key = "#id")
+    public Product findById(Long id) { ... }
+
+    @CacheEvict(value = "products", key = "#id")
+    public void update(Long id, ProductRequest req) { ... }
+
+────────────────────────────────────────────────────────────────
+
+READ-THROUGH
+  Cache auto-loads from DB on miss. App never directly queries DB.
+
+  SYSTEMS:
+    - CDN (Content Delivery Networks) — Cloudflare, Akamai
+    - Hibernate L2 cache (Ehcache, Caffeine as L2 provider)
+    - DNS resolution (DNS resolver caches, loads from authoritative server)
+    - ORMs with cache loaders
+
+  WHY: cleaner application code (no cache miss handling logic).
+  The cache itself knows how to load data.
+
+  SPRING BOOT:
+    Caffeine with CacheLoader:
+    @Bean
+    public CacheManager cacheManager() {
+        CaffeineCacheManager manager = new CaffeineCacheManager("products");
+        manager.setCaffeine(Caffeine.newBuilder()
+            .maximumSize(10_000)
+            .expireAfterWrite(Duration.ofMinutes(5))
+        );
+        return manager;
+    }
+
+────────────────────────────────────────────────────────────────
+
+WRITE-THROUGH
+  Writes go to cache AND DB synchronously. Cache always consistent.
+
+  SYSTEMS:
+    - Banking / financial systems (balance must be accurate)
+    - Shopping cart (Shopify) — cart must reflect latest state
+    - Session stores — session changes must persist immediately
+    - Inventory management (write stock level to cache + DB together)
+
+  WHY: strong consistency. Read after write always returns correct data.
+  Trade-off: writes are slower (two writes per operation).
+
+  SPRING BOOT:
+    @CachePut(value = "accounts", key = "#result.id")
+    @Transactional
+    public Account updateBalance(Long id, BigDecimal amount) {
+        Account acc = repo.findById(id).orElseThrow();
+        acc.setBalance(acc.getBalance().add(amount));
+        return repo.save(acc);
+    }
+
+────────────────────────────────────────────────────────────────
+
+WRITE-BEHIND (Write-Back)
+  Writes go to cache immediately. DB write happens async later.
+
+  SYSTEMS:
+    - Social media likes/views counters (Instagram, YouTube)
+      → "Like" updates cache instantly, DB batch-writes every 5 seconds
+    - Analytics event ingestion (100K events/sec → buffer in Redis → flush)
+    - Gaming leaderboards (score updates → cache → async persist)
+    - Logging / metrics pipelines (write to Redis → batch to TimescaleDB)
+
+  WHY: extremely fast writes. Batching reduces DB write load.
+  Trade-off: data loss risk if cache crashes before flushing to DB.
+
+  SPRING BOOT (manual — no annotation support):
+    // Write to Redis immediately
+    redisTemplate.opsForValue().set("views:post:123",
+        String.valueOf(viewCount));
+
+    // Scheduled flush to DB every 10 seconds
+    @Scheduled(fixedRate = 10_000)
+    public void flushViewsToDB() {
+        Set<String> keys = redisTemplate.keys("views:post:*");
+        for (String key : keys) {
+            Long views = Long.valueOf(redisTemplate.opsForValue().get(key));
+            String postId = key.split(":")[2];
+            postRepo.updateViews(Long.valueOf(postId), views);
+        }
+    }
+
+────────────────────────────────────────────────────────────────
+
+WRITE-AROUND
+  Writes go ONLY to DB. Cache is NOT updated on write.
+  Cache is populated only on subsequent reads (cache-aside for reads).
+
+  SYSTEMS:
+    - Batch data imports / ETL (bulk write 1M records, most never read soon)
+    - Log storage (write logs to DB, rarely re-read immediately)
+    - Data migrations
+    - Any write-heavy, read-light workload
+
+  WHY: avoids filling cache with data that may never be read.
+  Writes don't waste cache memory. Cache only has hot read data.
+
+  SPRING BOOT:
+    // No cache annotation on write method
+    @Transactional
+    public void bulkImport(List<Product> products) {
+        repo.saveAll(products);  // only DB, no cache
+    }
+
+    @Cacheable("products")
+    public Product findById(Long id) { ... }  // cache on read
+```
+
+### Real-World System Cache Architecture
+
+```text
+AMAZON (E-Commerce):
+  ┌─────────────────────────────────────────────────┐
+  │ Browser cache (static assets, 1 hour)            │
+  │ CDN — CloudFront (images, CSS, JS)               │
+  │ API Gateway cache (response cache, 60s)          │
+  │ Application cache — ElastiCache/Redis            │
+  │   ├── Product catalog: cache-aside, 5 min TTL    │
+  │   ├── Shopping cart: write-through (consistency)  │
+  │   ├── Session: Redis strings, 30 min TTL         │
+  │   └── Recommendations: write-behind (batch ML)   │
+  │ Database — Aurora PostgreSQL                     │
+  └─────────────────────────────────────────────────┘
+
+INSTAGRAM (Social Media):
+  ┌─────────────────────────────────────────────────┐
+  │ CDN — feed images, profile pictures              │
+  │ Application cache — Memcached + Redis            │
+  │   ├── User profiles: cache-aside, 5 min          │
+  │   ├── Feed timeline: cache-aside + fan-out       │
+  │   ├── Likes/Views: write-behind (counter buffer) │
+  │   ├── Stories: cache-aside, 24h TTL (auto-expire)│
+  │   └── Follow graph: Redis Sets                   │
+  │ Database — PostgreSQL + Cassandra                │
+  └─────────────────────────────────────────────────┘
+
+UBER (Real-Time):
+  ┌─────────────────────────────────────────────────┐
+  │ Application cache — Redis Cluster                │
+  │   ├── Driver locations: Redis Geo, 5s TTL        │
+  │   ├── Pricing/surge: write-through (accurate)    │
+  │   ├── Ride status: Redis pub/sub + cache         │
+  │   ├── City config: read-through, 1h TTL          │
+  │   └── ETA calculations: cache-aside, 30s TTL     │
+  │ Database — PostgreSQL + Cassandra + Google S2    │
+  └─────────────────────────────────────────────────┘
+```
+
+---
+
+## 9. Local vs Distributed Cache
+
+```text
+LOCAL CACHE (In-Process)
+  Cache lives inside the JVM. Same process as your application.
+
+  TECHNOLOGIES:
+    - Caffeine (BEST for Java — fastest, most feature-rich)
+    - Guava Cache (older Google library, use Caffeine instead)
+    - ConcurrentHashMap (DIY, no TTL/eviction — avoid)
+    - Ehcache (embedded mode)
+
+  PROS:
+    ✅ Blazing fast (no network call, direct memory access, ~nanoseconds)
+    ✅ No extra infrastructure
+    ✅ No serialization/deserialization
+
+  CONS:
+    ❌ Limited by JVM heap size
+    ❌ NOT shared across instances (each pod has its own cache)
+    ❌ Lost on restart (not persistent)
+    ❌ Inconsistent across instances (instance A has stale, B has fresh)
+
+  WHEN TO USE:
+    - Single instance deployments
+    - Static/reference data (countries, currencies, config)
+    - Short TTL where slight staleness is OK
+    - Hot-path performance (nanosecond reads)
+
+────────────────────────────────────────────────────────────────
+
+DISTRIBUTED CACHE (Shared)
+  Cache lives on a separate server. All app instances share it.
+
+  TECHNOLOGIES:
+    - Redis (MOST POPULAR — rich data structures, persistence, pub/sub)
+    - Memcached (simpler, multi-threaded, good for plain key-value)
+    - Hazelcast (embedded + distributed, Java-native)
+    - Apache Ignite (distributed cache + compute grid)
+
+  PROS:
+    ✅ Shared across all app instances (consistent)
+    ✅ Survives app restarts (persistent with Redis AOF/RDB)
+    ✅ Scales independently (add more Redis nodes)
+    ✅ Rich features (TTL, eviction, pub/sub, Lua scripts)
+
+  CONS:
+    ❌ Network latency (~1ms vs nanoseconds for local)
+    ❌ Serialization overhead (Java object → bytes → Java object)
+    ❌ Extra infrastructure to manage
+    ❌ Single point of failure (needs clustering/sentinel)
+
+  WHEN TO USE:
+    - Multi-instance deployments (Kubernetes pods, multiple servers)
+    - Large datasets (bigger than JVM heap)
+    - Data that must be shared (sessions, rate limits, locks)
+    - Persistence needed (survive restarts)
+
+────────────────────────────────────────────────────────────────
+
+MULTI-TIER CACHE (L1 + L2) — Best of Both Worlds
+
+  L1: Local (Caffeine)  → nanosecond access, small, per-instance
+  L2: Distributed (Redis) → millisecond access, large, shared
+
+  READ FLOW:
+    1. Check L1 (Caffeine) → HIT → return (fastest)
+    2. L1 MISS → Check L2 (Redis) → HIT → store in L1 → return
+    3. L2 MISS → Query DB → store in L2 → store in L1 → return
+
+  WRITE FLOW:
+    1. Write to DB
+    2. Evict from L2 (Redis) → publish invalidation event
+    3. All instances receive event → evict from their L1
+
+  SYSTEMS THAT USE THIS:
+    - Wikipedia (Varnish L1 + Memcached L2)
+    - Large Spring Boot deployments
+    - Any system with multiple pods needing fast reads
+```
+
+### Multi-Tier Cache in Spring Boot
+
+```java
+@Configuration
+@EnableCaching
+public class MultiTierCacheConfig {
+
+    @Bean
+    @Primary
+    public CacheManager cacheManager(RedisConnectionFactory redisFactory) {
+        // L1: Caffeine (local, fast, small)
+        CaffeineCacheManager caffeineManager = new CaffeineCacheManager();
+        caffeineManager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1_000)
+                .expireAfterWrite(Duration.ofMinutes(1)));
+
+        // L2: Redis (distributed, shared, large)
+        RedisCacheManager redisManager = RedisCacheManager.builder(redisFactory)
+                .cacheDefaults(RedisCacheConfiguration.defaultCacheConfig()
+                        .entryTtl(Duration.ofMinutes(10))
+                        .serializeValuesWith(
+                            SerializationPair.fromSerializer(
+                                new GenericJackson2JsonRedisSerializer())))
+                .build();
+
+        // Composite: L1 first, then L2
+        return new CompositeCacheManager(caffeineManager, redisManager);
+    }
+}
+```
+
+```text
+CompositeCacheManager checks caches IN ORDER:
+  1. Caffeine (L1) → if hit, return immediately
+  2. Redis (L2) → if hit, return (but does NOT auto-populate L1)
+
+  NOTE: Spring's CompositeCacheManager does NOT auto-populate L1 on L2 hit.
+  For true L1-populates-from-L2, you need a custom CacheManager or use
+  libraries like JetCache, Redisson, or custom @Cacheable with manual L1 put.
+```
+
+---
+
+## 10. Redis vs Memcached vs Caffeine
+
+```text
+FEATURE           REDIS              MEMCACHED          CAFFEINE
+──────────────────────────────────────────────────────────────────
+Type              Distributed        Distributed        Local (in-JVM)
+Data structures   Strings, Hashes,   Strings ONLY       Java objects
+                  Lists, Sets,
+                  Sorted Sets, Geo,
+                  Streams, Bitmaps
+Persistence       YES (RDB + AOF)    NO (pure RAM)      NO (JVM heap)
+Pub/Sub           YES                NO                 NO
+Lua scripting     YES                NO                 NO
+Multi-threaded    Single-threaded*   Multi-threaded     N/A (in-process)
+Clustering        YES (Redis Cluster) YES (consistent   N/A
+                                      hashing by client)
+Max size          RAM of cluster     RAM of cluster     JVM heap
+Latency           ~1ms (network)     ~1ms (network)     ~nanoseconds
+Eviction          LRU, LFU, TTL      LRU only           LRU, LFU, size,
+                                                        TTL, custom
+
+* Redis 6+ uses I/O threads for network, but command execution is single-threaded.
+
+WHEN TO USE EACH:
+
+  CAFFEINE:
+    Single-instance apps, reference data, hot-path caching, L1 cache layer.
+    Example: cache country list, currency rates, feature flags.
+
+  REDIS:
+    Multi-instance apps, sessions, rate limiting, pub/sub, leaderboards,
+    distributed locks, queues, anything needing shared state.
+    Example: cache user sessions across 10 Kubernetes pods.
+
+  MEMCACHED:
+    Simple key-value caching at massive scale. When you don't need Redis
+    features. Slightly better multi-threaded performance for simple gets.
+    Example: Facebook uses Memcached for massive-scale page fragment caching.
+```
+
+---
+
+## 11. Spring Boot Cache — Advanced Configuration
+
+### Per-Cache TTL Configuration
+
+```java
+@Bean
+public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+    RedisCacheConfiguration defaultConfig = RedisCacheConfiguration
+            .defaultCacheConfig()
+            .entryTtl(Duration.ofMinutes(5))
+            .serializeValuesWith(
+                SerializationPair.fromSerializer(
+                    new GenericJackson2JsonRedisSerializer()));
+
+    Map<String, RedisCacheConfiguration> perCacheConfig = Map.of(
+        "users",       defaultConfig.entryTtl(Duration.ofMinutes(15)),
+        "products",    defaultConfig.entryTtl(Duration.ofMinutes(5)),
+        "sessions",    defaultConfig.entryTtl(Duration.ofMinutes(30)),
+        "config",      defaultConfig.entryTtl(Duration.ofHours(24)),
+        "counters",    defaultConfig.entryTtl(Duration.ofSeconds(30))
+    );
+
+    return RedisCacheManager.builder(factory)
+            .cacheDefaults(defaultConfig)
+            .withInitialCacheConfigurations(perCacheConfig)
+            .build();
+}
+```
+
+### Conditional Caching
+
+```java
+// Only cache if result is not null
+@Cacheable(value = "users", key = "#id", unless = "#result == null")
+public User findById(Long id) { ... }
+
+// Only cache if user is active
+@Cacheable(value = "users", key = "#id", unless = "!#result.active")
+public User findById(Long id) { ... }
+
+// Only check cache if id > 0 (skip cache for invalid IDs)
+@Cacheable(value = "users", key = "#id", condition = "#id > 0")
+public User findById(Long id) { ... }
+```
+
+```text
+condition vs unless:
+  condition = "#id > 0"       → if FALSE, skip cache entirely (no read, no write)
+  unless = "#result == null"  → if TRUE, don't STORE result (but still reads cache)
+
+  condition: controls whether to USE the cache at all
+  unless:    controls whether to STORE the result after method execution
+```
+
+### Custom Key Generation
+
+```java
+// SpEL expressions for cache keys
+@Cacheable(value = "users", key = "#username")
+public User findByUsername(String username) { ... }
+
+@Cacheable(value = "search", key = "#filter.status + ':' + #filter.page")
+public Page<Product> search(ProductFilter filter) { ... }
+
+@Cacheable(value = "orders", key = "T(java.lang.String).format('%s:%s', #userId, #status)")
+public List<Order> findOrders(Long userId, String status) { ... }
+
+// Custom KeyGenerator for complex keys
+@Bean
+public KeyGenerator customKeyGenerator() {
+    return (target, method, params) ->
+        method.getName() + ":" + Arrays.stream(params)
+            .map(Object::toString)
+            .collect(Collectors.joining(":"));
+}
+
+@Cacheable(value = "reports", keyGenerator = "customKeyGenerator")
+public Report generateReport(String type, Instant from, Instant to) { ... }
+```
+
+### Cache Synchronization (Preventing Stampede)
+
+```java
+// sync = true → only one thread loads on cache miss, others wait
+@Cacheable(value = "products", key = "#id", sync = true)
+public Product findById(Long id) {
+    return productRepo.findById(id).orElseThrow();
+}
+```
+
+```text
+sync = true:
+  When multiple threads have a cache miss for the SAME key at the same time:
+  - WITHOUT sync: all threads query DB simultaneously (stampede!)
+  - WITH sync: only ONE thread queries DB, others BLOCK and wait
+
+  This is Spring's built-in stampede prevention.
+  Only works for @Cacheable (not @CachePut or @CacheEvict).
+  Not all cache providers support it (Redis and Caffeine do).
+```
+
+---
+
+## 12. Caching Anti-Patterns
+
+```text
+1. CACHING EVERYTHING
+   ❌ Cache ALL DB queries including rarely-accessed data
+   ✅ Only cache HOT data (frequently accessed, expensive to compute)
+   Rule: if it's accessed < 10 times before TTL expires, don't cache it.
+
+2. CACHE WITHOUT TTL
+   ❌ Set data in cache with no expiration
+   ✅ Always set a TTL — even a long one (24h) is safer than none.
+   Without TTL: stale data lives forever. Memory grows unbounded.
+
+3. CACHING MUTABLE STATE WITHOUT INVALIDATION
+   ❌ Cache user balance, never invalidate on update
+   ✅ @CacheEvict on every write, or use write-through.
+   Rule: if data changes, the cache MUST know about it.
+
+4. BIG OBJECTS IN CACHE
+   ❌ Cache entire entity graphs (Order → Items → Products → Categories)
+   ✅ Cache DTOs or projections with only the fields you need.
+   Big objects = more serialization time, more memory, slower cache.
+
+5. USING CACHE AS PRIMARY DATA STORE
+   ❌ Write ONLY to Redis, rely on it as source of truth
+   ✅ Cache is a COPY. DB is the source of truth. Cache can disappear.
+   Redis can lose data (eviction, crash before persistence).
+
+6. IGNORING SERIALIZATION
+   ❌ Use Java serialization (default) — slow, fragile, version-sensitive
+   ✅ Use JSON (Jackson) or Protobuf for Redis serialization.
+
+   @Bean
+   public RedisCacheConfiguration cacheConfig() {
+       return RedisCacheConfiguration.defaultCacheConfig()
+           .serializeValuesWith(
+               SerializationPair.fromSerializer(
+                   new GenericJackson2JsonRedisSerializer()));
+   }
+
+7. NOT MONITORING CACHE HIT RATE
+   ❌ Deploy cache and never check if it's effective
+   ✅ Monitor hit rate, miss rate, eviction rate.
+   If hit rate < 80%, your cache config needs tuning (TTL, size, strategy).
+
+   Redis: INFO stats → keyspace_hits, keyspace_misses
+   Spring: Micrometer metrics → cache.gets{result=hit|miss}
+```
+
+---
+
+## 13. Interview Questions — Basics
 
 ```text
 Q: What is cache-aside?
@@ -572,4 +1062,279 @@ A: @Cacheable skips the method if cache hit (reads).
 Q: Name 4 Redis data structures and a use case for each.
 A: Strings (sessions/counters), Hashes (user profiles),
    Sets (tags/unique visitors), Sorted Sets (leaderboards).
+
+Q: When would you use Caffeine over Redis?
+A: Single-instance app, need nanosecond reads, reference data that's
+   the same across instances. Caffeine is in-JVM (no network hop).
+   Use Redis when multiple instances need to share cache state.
+
+Q: What is write-around and when to use it?
+A: Writes go only to DB, not to cache. Cache is populated only on reads.
+   Use for batch imports/ETL where written data may never be read soon.
+```
+
+---
+
+## 14. Tricky Interview Questions (Gotchas)
+
+### Cache Consistency
+
+```text
+Q: You update a record. Should you update the cache or delete it?
+
+A: DELETE (invalidate) the cache entry. Do NOT update it.
+
+   WHY:
+   Race condition with update:
+     Thread 1: reads DB → gets v2
+     Thread 2: reads DB → gets v3
+     Thread 2: updates cache → cache has v3
+     Thread 1: updates cache → cache has v2 (STALE! v3 was newer)
+
+   With delete:
+     Thread 1: deletes cache
+     Thread 2: deletes cache
+     Next read: cache miss → loads latest from DB → always correct
+
+   This is called "cache invalidation over cache update."
+
+────────────────────────────────────────────────────────────────
+
+Q: Should you update DB first or invalidate cache first?
+
+A: Update DB first, THEN invalidate cache.
+
+   WRONG ORDER (delete cache first):
+     1. Thread A: delete cache
+     2. Thread B: cache miss → reads DB (old value) → stores in cache
+     3. Thread A: update DB
+     Result: cache has OLD value, DB has NEW value → inconsistent!
+
+   RIGHT ORDER (update DB first):
+     1. Thread A: update DB
+     2. Thread A: delete cache
+     3. Thread B: cache miss → reads DB (new value) → stores in cache
+     Result: cache has NEW value ✅
+
+   There's still a tiny race window, but it's much smaller.
+   For perfect consistency: use DB change events (CDC/Debezium)
+   to trigger cache invalidation.
+
+────────────────────────────────────────────────────────────────
+
+Q: What is the "double deletion" strategy?
+
+A: Delete cache → update DB → wait a short delay → delete cache again.
+
+   1. Delete cache
+   2. Update DB
+   3. Sleep(500ms)
+   4. Delete cache again
+
+   WHY: covers the race where another thread re-populates cache
+   with stale data between steps 1 and 2.
+   The second deletion catches any stale entry that snuck in.
+   Used in high-consistency systems that can't use CDC.
+```
+
+### Spring @Cacheable Gotchas
+
+```text
+Q: @Cacheable method returns null. What happens?
+
+A: The null IS cached by default! Next call returns null from cache
+   without calling the method. This can be a bug if null was temporary.
+
+   Fix:
+   @Cacheable(value = "users", unless = "#result == null")
+   public User findById(Long id) { ... }
+   // Now null results are NOT cached.
+
+────────────────────────────────────────────────────────────────
+
+Q: Does @Cacheable have the self-invocation trap like @Transactional?
+
+A: YES! @Cacheable uses AOP proxies, same as @Transactional.
+   Calling a @Cacheable method from within the same class (this.method())
+   bypasses the cache proxy. The method always executes, cache is never checked.
+
+   @Service
+   public class ProductService {
+       public Product getProduct(Long id) {
+           return this.findById(id);  // cache BYPASSED!
+       }
+
+       @Cacheable("products")
+       public Product findById(Long id) { ... }
+   }
+
+   Fix: same as @Transactional — separate bean, inject self, etc.
+
+────────────────────────────────────────────────────────────────
+
+Q: What is the difference between condition and unless in @Cacheable?
+
+A: condition: evaluated BEFORE method execution
+     → if false, cache is NOT checked AND result is NOT cached.
+     → method always runs.
+
+   unless: evaluated AFTER method execution
+     → cache IS checked on read.
+     → if true, result is NOT stored in cache.
+
+   @Cacheable(condition = "#id > 0")       // skip cache for id <= 0
+   @Cacheable(unless = "#result == null")   // don't cache nulls
+
+   TRICKY: condition = false → method runs every time (no cache at all)
+           unless = true → cache is read but never written
+
+────────────────────────────────────────────────────────────────
+
+Q: @Cacheable and @CachePut on the same method — what happens?
+
+A: DON'T DO THIS. They have conflicting behavior:
+   @Cacheable: skip method if cached
+   @CachePut: always run method
+
+   Together → method ALWAYS runs (@CachePut wins), then result is cached.
+   @Cacheable becomes useless. Use them on different methods.
+
+────────────────────────────────────────────────────────────────
+
+Q: Can @CacheEvict run BEFORE the method executes?
+
+A: YES, with beforeInvocation = true:
+
+   @CacheEvict(value = "products", key = "#id", beforeInvocation = true)
+   public void delete(Long id) {
+       repo.deleteById(id);  // even if this throws, cache is already evicted
+   }
+
+   Default (beforeInvocation = false): evicts AFTER successful method execution.
+   If method throws → cache is NOT evicted (entry still exists).
+
+   beforeInvocation = true: evicts BEFORE method runs.
+   Even if method fails → cache is evicted.
+   Use when: you want guaranteed eviction regardless of outcome.
+```
+
+### Redis Gotchas
+
+```text
+Q: Redis is single-threaded. How does it handle 100K+ requests/sec?
+
+A: Redis is single-threaded for COMMAND EXECUTION, not for everything.
+   - I/O multiplexing (epoll/kqueue): handles thousands of connections
+     on a single thread without blocking.
+   - No locks/context switches: single thread = no synchronization overhead.
+   - In-memory: all data in RAM, no disk I/O for reads.
+   - Redis 6+: I/O threads for network read/write (but commands still single-threaded)
+
+   Result: single Redis instance handles 100K-300K ops/sec.
+   For more: Redis Cluster (shard data across nodes).
+
+────────────────────────────────────────────────────────────────
+
+Q: What happens when Redis runs out of memory?
+
+A: Depends on maxmemory-policy:
+   - noeviction (default): returns ERROR on writes. Reads still work.
+   - allkeys-lru: evicts least recently used key to make room.
+   - volatile-lru: evicts LRU key ONLY among keys with TTL set.
+   - allkeys-lfu: evicts least frequently used key.
+   - allkeys-random: evicts random key.
+   - volatile-ttl: evicts key with shortest remaining TTL.
+
+   RECOMMENDATION: allkeys-lru for cache use cases.
+   Set maxmemory in redis.conf: maxmemory 2gb
+
+────────────────────────────────────────────────────────────────
+
+Q: Redis persistence — RDB vs AOF?
+
+A: RDB (Redis Database Backup):
+   - Point-in-time snapshots at intervals (e.g., every 5 minutes)
+   - Fast restart (load snapshot)
+   - Can lose data between snapshots (up to 5 min of data)
+
+   AOF (Append Only File):
+   - Logs EVERY write command
+   - More durable (can configure fsync every second or every command)
+   - Slower restart (replay all commands)
+   - File grows large (needs periodic rewrite/compaction)
+
+   BEST: use BOTH. RDB for fast recovery + AOF for minimal data loss.
+
+────────────────────────────────────────────────────────────────
+
+Q: How do you handle cache in a microservices architecture?
+
+A: Each service owns its own cache (no shared cache across services).
+
+   Service A: Redis for user profiles
+   Service B: Redis for orders
+   Service C: Caffeine for product catalog (read-heavy, rarely changes)
+
+   Cross-service invalidation:
+   - Service A updates user → publishes UserUpdatedEvent to Kafka
+   - Service B consumes event → evicts cached user data it holds
+   - Event-driven invalidation, not shared cache.
+
+   NEVER share a Redis instance across services as primary cache.
+   Each service should be independent (bounded context).
+
+────────────────────────────────────────────────────────────────
+
+Q: How would you cache paginated results?
+
+A: TWO approaches:
+
+   1. Cache per page (simple):
+      Key: "products:page:1:size:20:sort:name"
+      Problem: updating one product invalidates ALL page caches.
+
+   2. Cache individual entities + assemble (better):
+      Cache each product by ID: "product:123", "product:456"
+      For a page request: get IDs from DB (fast query), then
+      multi-get from cache: MGET product:123 product:456 ...
+      Only cache-missed products hit DB.
+
+   For list/search results: cache the query result with short TTL (30s-60s)
+   and invalidate with @CacheEvict(allEntries = true) on writes.
+```
+
+### Design Questions
+
+```text
+Q: Design a caching strategy for a social media feed.
+
+A: Architecture:
+   1. Fan-out on write: when user posts → push to followers' feed caches
+      - Cache: Redis List per user (LPUSH feed:user:123 "post:789")
+      - Keep last 500 posts per feed (LTRIM)
+      - TTL: none (feed is always warm)
+   2. For celebrities (millions of followers): fan-out on read
+      - Don't push to all followers (too expensive)
+      - Merge celebrity posts at read time
+   3. Post content: cache-aside with Redis Hash
+      - HSET post:789 text "Hello" author "alice" likes 42
+   4. Like/view counts: write-behind
+      - INCR likes:post:789 (cache)
+      - Batch flush to DB every 10 seconds
+
+────────────────────────────────────────────────────────────────
+
+Q: Your cache hit rate is 40%. How do you improve it?
+
+A: Diagnose:
+   1. TTL too short? → Increase TTL (if staleness is acceptable)
+   2. Cache too small? → Increase maxmemory or maxSize
+   3. Caching wrong data? → Only cache hot/frequently-accessed data
+   4. Keys too specific? → Normalize keys (remove unnecessary params)
+   5. Cache being evicted? → Check eviction rate, increase memory
+   6. Cold start? → Pre-warm cache on deployment
+   7. One-time reads? → Don't cache data accessed only once
+
+   Target: > 90% hit rate for most applications.
+   Monitor: Redis INFO stats, Spring Micrometer cache.gets{result=hit|miss}
 ```
