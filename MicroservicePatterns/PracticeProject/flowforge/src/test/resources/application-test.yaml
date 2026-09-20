@@ -1,20 +1,24 @@
-# --- Development profile ---
-# Use with: --spring.profiles.active=dev,postgres (or dev,h2)
-# This is the default when no profiles are explicitly set.
+# --- Test profile ---
+# Used by integration tests with Testcontainers PostgreSQL.
+# Datasource is auto-configured by @ServiceConnection — no URL needed here.
 
 spring:
   jpa:
-    show-sql: true
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
         generate_statistics: true
 
+  sql:
+    init:
+      mode: always
+      platform: postgres
+
 logging:
   level:
     com.flowforge: DEBUG
-    org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE

@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,7 +26,7 @@ import java.util.List;
 @ToString(exclude = "steps")
 public class Workflow extends BaseEntity {
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, unique = true)
     private String name;
 
     @Column(length = 500)
@@ -40,6 +41,9 @@ public class Workflow extends BaseEntity {
 
     @Column(name = "timeout_seconds", nullable = false)
     private int timeoutSeconds;
+
+    @Version
+    private Long version;
 
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("stepOrder ASC")

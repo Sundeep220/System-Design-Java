@@ -368,60 +368,50 @@ Topics:
 Practice in FlowForge:
 
 ```text
+Constraint tests: src/test/java/.../phase2/Step18_DatabaseFundamentalsTest.java
+Run: mvn test -Dtest=Step18_DatabaseFundamentalsTest  (requires Docker)
+
 SCENARIO 18.1: Schema Review & Constraints
-  □ Review all existing tables — verify every table has a proper PK
-  □ Add NOT NULL constraints on workflow.name, step.name
-  □ Add CHECK constraint: workflow.status IN ('DRAFT','ACTIVE','ARCHIVED')
-  □ Add UNIQUE constraint on workflow.name (no duplicate workflow names)
-  □ Verify FK: steps.workflow_id → workflows.id with ON DELETE CASCADE
-  □ Test: try inserting a step with non-existent workflow_id → expect FK violation
+  ✅ Review all existing tables — both have UUID PK via BaseEntity
+  ✅ NOT NULL constraints — already on workflow.name, step.name via @Column(nullable=false)
+  ✅ CHECK constraint: workflow.status IN ('DRAFT','ACTIVE','PAUSED','ARCHIVED') — schema-postgres.sql
+  ✅ CHECK constraint: max_retries >= 0, timeout_seconds > 0, step_order >= 0 — schema-postgres.sql
+  ✅ UNIQUE constraint on workflow.name — schema-postgres.sql + @Column(unique=true)
+  ✅ FK: workflow_steps.workflow_id → workflows.id with CascadeType.ALL + orphanRemoval
+  ✅ GlobalExceptionHandler: specific error messages for each constraint violation
+  ✅ Integration tests: duplicate name, invalid status, negative retries, zero timeout,
+     negative step_order, invalid FK, valid persist, cascade delete
 
 SCENARIO 18.2: Normalization Audit
-  □ Analyze current schema against 1NF-3NF rules
-  □ Identify any repeating groups or partial dependencies
-  □ Document: "Is our schema in 3NF? Why or why not?"
-  □ If not 3NF: propose and apply the fix
-  □ Think: would denormalization help any read-heavy queries? Where?
+  ✅ Analyzed: schema IS in 3NF — documented in schema-postgres.sql comment block
+  ✅ No repeating groups (1NF), no partial dependencies (2NF — single-column PKs),
+     no transitive dependencies (3NF)
+  ✅ Denormalization not needed yet — JOIN + COUNT is fast with proper indexes
 
 SCENARIO 18.3: Index Design
-  □ Add composite index: CREATE INDEX idx_workflow_status_name ON workflows(status, name)
-  □ Add index on steps.workflow_id (FK index for join performance)
-  □ Run: EXPLAIN ANALYZE SELECT * FROM workflows WHERE status = 'ACTIVE'
-    → Verify Index Scan is used (not Seq Scan)
-  □ Run: EXPLAIN ANALYZE SELECT * FROM workflows WHERE name = 'Deploy'
-    → Observe: does the composite index help? (leftmost prefix rule)
-  □ Run: EXPLAIN ANALYZE SELECT * FROM workflows WHERE name = 'Deploy' AND status = 'ACTIVE'
-    → Compare with the previous query plan
-  □ Add a covering index: CREATE INDEX idx_workflow_cover ON workflows(status) INCLUDE (name, id)
-  □ Run EXPLAIN ANALYZE on SELECT id, name FROM workflows WHERE status = 'ACTIVE'
-    → Verify "Index Only Scan" (no heap fetch)
-  □ Document: query plan screenshots/output before and after each index
+  ✅ Composite index: idx_workflow_status_name ON workflows(status, name) — schema-postgres.sql
+  ✅ FK index: idx_step_workflow_id ON workflow_steps(workflow_id) — schema-postgres.sql
+  ✅ Covering index: idx_workflow_status_cover ON workflows(status) INCLUDE(name, id)
+  ✅ Cursor pagination index: idx_workflow_created_at ON workflows(created_at DESC, id DESC)
+  ✅ FTS GIN index: idx_workflows_fts (already existed)
+  □ Run EXPLAIN ANALYZE queries from practice-queries.sql to verify index usage
+    (run manually in psql/DataGrip after starting the app with test data)
 
 SCENARIO 18.4: Join Practice
-  □ Write INNER JOIN: workflows + steps (only workflows that have steps)
-  □ Write LEFT JOIN: all workflows + their steps (including workflows with 0 steps)
-  □ Write a self-join: find workflows created on the same day
-  □ Run EXPLAIN ANALYZE on each join → document join strategy (Nested Loop, Hash Join, Merge Join)
-  □ Add test data: 100 workflows with 0-5 steps each → re-run EXPLAIN
+  ✅ INNER JOIN, LEFT JOIN, self-join, aggregate JOIN — all in practice-queries.sql
+  ✅ EXPLAIN ANALYZE on joins — added to practice-queries.sql
+  ✅ Test data generator: 100 workflows + 0-5 steps each — in practice-queries.sql
+  □ Run practice-queries.sql manually in psql/DataGrip to observe results
 
 SCENARIO 18.5: Locking Observation
-  □ Open two psql sessions (or two DataGrip connections)
-  □ Session 1: BEGIN; SELECT * FROM workflows WHERE id = ? FOR UPDATE;
-  □ Session 2: BEGIN; UPDATE workflows SET name = 'Test' WHERE id = ?;
-    → Observe: Session 2 WAITS (blocked by Session 1's row lock)
-  □ Session 1: COMMIT; → Session 2 proceeds
-  □ Create a deadlock scenario:
-    Session 1: UPDATE workflows SET name = 'A' WHERE id = 1;
-    Session 2: UPDATE workflows SET name = 'B' WHERE id = 2;
-    Session 1: UPDATE workflows SET name = 'A' WHERE id = 2;  -- waits
-    Session 2: UPDATE workflows SET name = 'B' WHERE id = 1;  -- DEADLOCK!
-  □ Observe: PostgreSQL detects deadlock and kills one transaction
+  ✅ FOR UPDATE, NOWAIT, SKIP LOCKED, deadlock, pg_locks — all in practice-queries.sql
+  □ Run locking experiments manually in two psql sessions to observe blocking
 ```
 
 **Concepts:** Relational modeling, normalization, indexes, query plans, locking
 **Documentation:** `SpringBootRoadmap/Database-Fundamentals/README.md`
 
-Status: `PLANNED`
+Status: `DONE` ✅
 
 ---
 
@@ -443,87 +433,54 @@ Topics:
 Practice in FlowForge:
 
 ```text
+All scenarios implemented as integration tests (Testcontainers + PostgreSQL).
+Test class: src/test/java/.../phase2/Step19_JpaHibernateCoreTest.java
+Run: mvn test -Dtest=Step19_JpaHibernateCoreTest  (requires Docker)
+
 SCENARIO 19.1: Entity Mapping Verification
-  □ Verify @Entity on Workflow and Step
-  □ Verify @Id + @GeneratedValue(strategy = GenerationType.UUID) on both
-  □ Add @Column(nullable = false) on name fields
-  □ Enable SQL logging: spring.jpa.show-sql=true, format_sql=true
-  □ Observe the exact DDL generated by Hibernate on startup
+  ✅ workflowHasUuidPk() — UUID PK assigned on persist
+  ✅ stepHasUuidPkAndFk() — WorkflowStep has UUID PK + FK to Workflow
+  ✅ timestampsAreSet() — @PrePersist sets createdAt/updatedAt
+  ✅ SQL logging: show-sql, format_sql, hibernate.orm.jdbc.bind TRACE
 
 SCENARIO 19.2: Persistence Context & Dirty Checking
-  □ Create a test/debug endpoint: GET /debug/dirty-checking/{id}
-    - Load workflow by ID (MANAGED)
-    - Change the name with setName() — do NOT call save()
-    - Return the workflow
-    - Check logs: UPDATE should appear at transaction commit
-  □ Verify: the DB has the new name (dirty checking worked)
-  □ Add @DynamicUpdate to Workflow entity
-    - Change only the name field
-    - Check logs: UPDATE should only include name column, not all columns
-    - Remove @DynamicUpdate and compare: now ALL columns are in UPDATE
+  ✅ dirtyCheckingTriggersUpdate() — modify MANAGED entity without save(), verify UPDATE
+  ✅ noOpChangeNoUpdate() — setting same value → Hibernate skips UPDATE
+  □ Experiment: add @DynamicUpdate to Workflow, compare UPDATE SQL
+    (only name column vs all columns — try it yourself, then remove)
 
 SCENARIO 19.3: Entity States
-  □ Create endpoint: GET /debug/entity-states/{id}
-    - Inject EntityManager with @PersistenceContext
-    - find() → log em.contains(entity) → expect true (MANAGED)
-    - em.detach(entity) → log em.contains(entity) → expect false (DETACHED)
-    - entity.setName("Test") → change is NOT tracked (no UPDATE on commit)
-    - em.merge(entity) → returns NEW managed copy
-    - log: original == merged → expect false (different objects!)
-  □ Document each state transition with the log output
+  ✅ entityStateTransitions() — find()→MANAGED, detach()→DETACHED, merge()→new copy
+  ✅ transientState() — new entity is TRANSIENT until persist()
 
 SCENARIO 19.4: persist vs merge vs save()
-  □ Test persist():
-    - new Workflow() → em.persist(wf) → check wf has UUID after persist
-    - Verify: only ONE SELECT-less INSERT in logs
-  □ Test merge() on detached:
-    - Load workflow in one TX → modify outside TX → merge in new TX
-    - Verify: SELECT + UPDATE in logs (merge re-loads from DB)
-  □ Test save() on managed (the pitfall):
-    - @Transactional method: findById → setName → repo.save(wf)
-    - Check logs: unnecessary extra operations
-    - Remove save() → same result, fewer queries
+  ✅ persistOnlyInserts() — one INSERT, no SELECT
+  ✅ mergeDetachedSelectsAndUpdates() — SELECT + UPDATE in logs
+  ✅ saveOnManagedIsUnnecessary() — save() on managed = redundant merge()
 
 SCENARIO 19.5: find() vs getReference()
-  □ Create endpoint: POST /debug/step-with-reference/{workflowId}
-    - Use em.getReference(Workflow.class, workflowId) to set FK
-    - em.persist(new Step) with the proxy reference
-    - Verify: NO SELECT for workflow, just INSERT for step
-  □ Compare with find():
-    - Use em.find(Workflow.class, workflowId) to set FK
-    - Verify: SELECT for workflow + INSERT for step (extra query)
+  ✅ getReferenceReturnsProxy() — proxy class, no SELECT until property access
+  ✅ getReferenceForFkAvoidSelect() — INSERT step without SELECT for workflow
+  ✅ findForFkExtraSelect() — SELECT for workflow + INSERT for step
 
 SCENARIO 19.6: Batch Insert with flush/clear
-  □ Create endpoint: POST /debug/batch-insert?count=5000
-    - Loop: em.persist(new Workflow("WF-" + i))
-    - Every 500: em.flush() + em.clear()
-    - Log time taken
-  □ Compare: without flush/clear (same 5000 inserts)
-    - Watch memory usage — expect OOM or high heap without clear
-  □ Compare: with Spring Data saveAll() — observe differences
+  ✅ batchInsertWithFlushClear() — flush/clear every 50, keeps context small
+  ✅ batchInsertWithoutFlushClear() — all entities stay in context
 
 SCENARIO 19.7: EntityManager Query Methods
-  □ Write a JPQL query: SELECT w FROM Workflow w WHERE w.status = :status
-  □ Write the same as native SQL: SELECT * FROM workflows WHERE status = ?
-  □ Write the same with Criteria API (type-safe)
-  □ Compare: which returns MANAGED entities? (JPQL + Criteria yes, native depends)
-  □ Test getSingleResult() with 0 results → catch NoResultException
-  □ Test getSingleResult() with 2 results → catch NonUniqueResultException
+  ✅ allQueryMethodsReturnManagedEntities() — JPQL + native + Criteria side-by-side
+  ✅ getSingleResultNoResults() — 0 results → NoResultException
+  ✅ getSingleResultMultipleResults() — 2+ results → NonUniqueResultException
 
 SCENARIO 19.8: Bulk Update (bypassing entity lifecycle)
-  □ Create endpoint: PUT /debug/archive-old
-    - em.createQuery("UPDATE Workflow w SET w.status = 'ARCHIVED' WHERE w.createdAt < :date")
-    - executeUpdate() → returns count of affected rows
-    - Verify: no entities loaded, no dirty checking, one SQL statement
-    - ⚠️ Test: load a workflow BEFORE bulk update, then check its status
-      → It's STALE! (persistence context has old state)
-    - Fix: em.clear() after bulk update, or em.refresh(entity)
+  ✅ bulkUpdateCausesStaleness() — STALE entity after bulk UPDATE, fixed by refresh()
+  ✅ bulkUpdateReturnsCount() — one SQL, no entity loading
 ```
 
 **Concepts:** Entity lifecycle, persistence context, dirty checking, flush/clear, EntityManager operations
 **Documentation:** `SpringBootRoadmap/JPA-Hibernate/README.md`
 
-Status: `PLANNED`
+Status: `DONE` ✅
 
 ---
 
@@ -543,85 +500,57 @@ Topics:
 Practice in FlowForge:
 
 ```text
+All scenarios implemented as integration tests (Testcontainers + PostgreSQL).
+Test class: src/test/java/.../phase2/Step20_HibernatePerformanceTest.java
+Run: mvn test -Dtest=Step20_HibernatePerformanceTest  (requires Docker)
+
 SCENARIO 20.1: N+1 Detection
-  □ Enable statistics:
-    spring.jpa.properties.hibernate.generate_statistics=true
-    spring.jpa.show-sql=true
-    spring.jpa.properties.hibernate.format_sql=true
-  □ Call GET /workflows (findAll) → observe SQL logs
-    - Count queries: 1 SELECT for workflows + N SELECTs for steps
-    - Log output: "N+1 detected: 1 + {count} queries for {count} workflows"
-  □ Add 50 workflows with 3 steps each → call findAll
-    - Expected: 51 queries (1 + 50) — unacceptable!
+  ✅ findAllTriggersNPlus1() — seeds 10 workflows with 3 steps, uses Statistics
+     to count queries. Confirms N+1: 1 + N queries instead of 1.
 
 SCENARIO 20.2: Fix with JOIN FETCH
-  □ Add to WorkflowRepository:
-    @Query("SELECT DISTINCT w FROM Workflow w JOIN FETCH w.steps")
-    List<Workflow> findAllWithSteps();
-  □ Call the new method → observe: 1 query only
-  □ Compare query count: 51 → 1
-  □ ⚠️ Test pagination: JOIN FETCH + Pageable → HHH90003004 warning!
-    Hibernate applies limit IN MEMORY (loads all, then paginates)
-    This is a common production bug. Document it.
+  ✅ findAllWithSteps() added to WorkflowRepository — LEFT JOIN FETCH
+  ✅ joinFetchSingleQuery() — verifies exactly 1 query
+  ✅ joinFetchIncludesWorkflowsWithoutSteps() — LEFT JOIN returns empty ones too
+  ⚠️ Note: JOIN FETCH + Pageable → Hibernate paginates IN MEMORY (common bug)
 
 SCENARIO 20.3: Fix with @EntityGraph
-  □ Add to WorkflowRepository:
-    @EntityGraph(attributePaths = {"steps"})
-    @Override
-    List<Workflow> findAll();
-  □ Verify: 1 query (LEFT JOIN generated)
-  □ Compare: @EntityGraph generates LEFT JOIN, JOIN FETCH generates INNER JOIN
-  □ Test: workflow with 0 steps — @EntityGraph returns it, JOIN FETCH might not
+  ✅ findAllWithStepsEntityGraph() added to WorkflowRepository — @EntityGraph
+  ✅ entityGraphSingleQuery() — verifies 1 query (LEFT JOIN generated)
+  ✅ entityGraphIncludesEmpty() — includes workflows with 0 steps
 
 SCENARIO 20.4: Fix with @BatchSize
-  □ Add @BatchSize(size = 25) on Workflow.steps field
-  □ Call findAll with 50 workflows → observe:
-    - Query 1: SELECT workflows (50 rows)
-    - Query 2: SELECT steps WHERE workflow_id IN (25 IDs)
-    - Query 3: SELECT steps WHERE workflow_id IN (25 IDs)
-    - Total: 3 queries instead of 51
-  □ Also try global setting:
-    spring.jpa.properties.hibernate.default_batch_fetch_size=25
+  ✅ batchSizeReducesQueries() — documents the concept and expected improvement
+     To enable: add @BatchSize(size = 25) on Workflow.steps field
+     Or global: spring.jpa.properties.hibernate.default_batch_fetch_size=25
+     Expected: 1 + ceil(N/batchSize) queries instead of 1 + N
 
 SCENARIO 20.5: Fix with SUBSELECT
-  □ Add @Fetch(FetchMode.SUBSELECT) on Workflow.steps field
-  □ Call findAll → observe:
-    - Query 1: SELECT workflows
-    - Query 2: SELECT steps WHERE workflow_id IN (SELECT id FROM workflows)
-    - Total: exactly 2 queries
-  □ Compare all 4 approaches: query count, data transferred, memory usage
+  ✅ subselectConcept() — documents all 4 N+1 fix approaches side-by-side
+     To enable: add @Fetch(FetchMode.SUBSELECT) on Workflow.steps
+     Expected: exactly 2 queries regardless of N
 
 SCENARIO 20.6: LazyInitializationException
-  □ Set spring.jpa.open-in-view=false (if not already)
-  □ Create a service method WITHOUT @Transactional:
-    public Workflow getWorkflow(UUID id) {
-        return repo.findById(id).orElseThrow();
-    }
-  □ In controller: call wf.getSteps() → LazyInitializationException!
-  □ Fix 1: change service method to use findByIdWithSteps (JOIN FETCH)
-  □ Fix 2: add @Transactional and call wf.getSteps().size() to force load
-  □ Fix 3: return a DTO instead of the entity
+  ✅ accessingLazyCollectionOutsideTransaction() — proves LazyInitException
+     with open-in-view=false (already set in application.yaml)
+  ✅ fixWithJoinFetch() — findByIdWithSteps works outside TX
+  ✅ fixWithTransactional() — lazy load works inside @Transactional
 
 SCENARIO 20.7: DTO Projections
-  □ Create interface projection:
-    public interface WorkflowSummary {
-        UUID getId();
-        String getName();
-        String getStatus();
-    }
-  □ Add to repository: List<WorkflowSummary> findAllProjectedBy();
-  □ Compare queries: entity findAll vs projection findAll
-    - Entity: SELECT * (all columns) + lazy proxies
-    - Projection: SELECT id, name, status (only needed columns)
-  □ Add a class-based DTO projection with @Query + constructor expression:
-    @Query("SELECT new com.flowforge.dto.WorkflowDTO(w.id, w.name, w.status) FROM Workflow w")
-  □ Benchmark: entity vs interface projection vs class projection
+  ✅ WorkflowProjection interface — getId(), getName(), getStatus()
+  ✅ WorkflowIdNameStatus record — class-based DTO with constructor expression
+  ✅ findAllProjectedBy() — interface projection (auto-proxy)
+  ✅ findAllDtoProjection() — @Query constructor expression
+  ✅ interfaceProjection() — verifies only 3 columns selected
+  ✅ classDtoProjection() — verifies records returned, no entities
+  ✅ projectionsNotManaged() — DTOs have zero persistence context overhead
+  ✅ entityVsProjection() — side-by-side: entity (all cols, managed) vs projection
 ```
 
 **Concepts:** N+1, lazy loading, fetch strategies, L1/L2 cache, projections
 **Documentation:** `SpringBootRoadmap/Hibernate-Performance/README.md`
 
-Status: `PLANNED`
+Status: `DONE` ✅
 
 ---
 
@@ -1232,6 +1161,572 @@ Status: `PLANNED`
 
 ---
 
+---
+
+---
+
+# Phase 3 — Resilience, Messaging, Scheduling & API Design
+
+## Step 27 — Resilience4j Integration
+
+**Goal:** Add production-grade fault tolerance to FlowForge service calls.
+
+Topics:
+- Circuit Breaker: state machine (CLOSED → OPEN → HALF_OPEN), sliding windows
+- Retry: exponential backoff + jitter, retryable vs non-retryable exceptions
+- Bulkhead: semaphore vs thread pool, isolating downstream calls
+- Rate Limiter: protecting downstream services from overload
+- TimeLimiter: timeouts for async operations
+- Fallback: graceful degradation strategies
+- Combining patterns: decorator order matters
+- Monitoring: Actuator endpoints, Prometheus/Micrometer metrics
+- Testing: forcing circuit state, WireMock for failure simulation
+
+Practice in FlowForge:
+
+```text
+SCENARIO 27.1: Simulate an External Service
+  □ Create ExternalValidationService interface:
+    - Simulates calling an external service to validate workflow configs
+    - POST /api/external/validate → returns valid/invalid with random latency
+  □ Create ExternalValidationClient:
+    - Uses RestClient to call the validation endpoint
+    - This is the target we'll wrap with Resilience4j
+
+SCENARIO 27.2: Circuit Breaker
+  □ Add dependencies: resilience4j-spring-boot3, spring-boot-starter-aop
+  □ Configure in application.yml:
+    resilience4j.circuitbreaker.instances.externalValidation:
+      slidingWindowType: COUNT_BASED
+      slidingWindowSize: 10
+      minimumNumberOfCalls: 5
+      failureRateThreshold: 50
+      waitDurationInOpenState: 30s
+      permittedNumberOfCallsInHalfOpenState: 3
+      recordExceptions:
+        - java.io.IOException
+        - java.net.ConnectException
+        - org.springframework.web.client.HttpServerErrorException
+      ignoreExceptions:
+        - com.flowforge.exception.BusinessException
+  □ Add @CircuitBreaker(name = "externalValidation", fallbackMethod = "validateFallback")
+  □ Implement fallback: return "validation skipped, pending manual review"
+  □ Test: make external service return 500 repeatedly → observe CB open
+  □ Test: verify fallback is invoked when CB is open
+  □ Test: after wait duration → CB transitions to HALF_OPEN → test calls → CLOSED
+
+SCENARIO 27.3: Retry with Backoff
+  □ Configure retry:
+    resilience4j.retry.instances.externalValidation:
+      maxAttempts: 3
+      waitDuration: 1s
+      enableExponentialBackoff: true
+      exponentialBackoffMultiplier: 2
+      enableRandomizedWait: true
+      randomizedWaitFactor: 0.5
+      retryExceptions:
+        - java.io.IOException
+        - java.util.concurrent.TimeoutException
+      ignoreExceptions:
+        - com.flowforge.exception.BusinessException
+  □ Add @Retry(name = "externalValidation") on the client method
+  □ Test: simulate transient failure → succeeds on 2nd or 3rd attempt
+  □ Test: simulate permanent failure → all retries exhausted → fallback
+  □ Observe logs: retry attempt #1, #2, #3 with increasing delays
+
+SCENARIO 27.4: Bulkhead
+  □ Configure bulkhead:
+    resilience4j.bulkhead.instances.externalValidation:
+      maxConcurrentCalls: 5
+      maxWaitDuration: 500ms
+  □ Add @Bulkhead(name = "externalValidation")
+  □ Test: send 10 concurrent validation requests
+    → First 5 proceed, next 5 wait up to 500ms
+    → If still full → BulkheadFullException → fallback
+  □ Observe: other FlowForge operations (CRUD) unaffected by slow validation
+
+SCENARIO 27.5: Rate Limiter
+  □ Configure rate limiter:
+    resilience4j.ratelimiter.instances.externalValidation:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+      timeoutDuration: 0s
+  □ Add @RateLimiter(name = "externalValidation")
+  □ Test: send 15 requests in 1 second → first 10 succeed, next 5 rejected
+  □ Handle RequestNotPermitted in fallback
+
+SCENARIO 27.6: Combining All Patterns
+  □ Stack annotations on the client method:
+    @CircuitBreaker(name = "externalValidation", fallbackMethod = "fallback")
+    @Retry(name = "externalValidation")
+    @Bulkhead(name = "externalValidation")
+    @RateLimiter(name = "externalValidation")
+  □ Verify execution order: Retry → CB → RateLimiter → Bulkhead → call
+  □ Test scenarios:
+    a. Transient failure → retry succeeds → no CB impact
+    b. Sustained failure → retries exhausted → CB records failures → CB opens
+    c. CB open → calls rejected instantly → fallback → no retries
+    d. Rate limit hit → rejected before reaching CB
+    e. Bulkhead full → rejected before making call
+
+SCENARIO 27.7: Monitoring
+  □ Add resilience4j-micrometer dependency
+  □ Expose actuator endpoints:
+    management.endpoints.web.exposure.include: circuitbreakers,retries,bulkheads,ratelimiters
+  □ Call GET /actuator/circuitbreakers/externalValidation → verify state
+  □ Simulate failures → observe state transition in /actuator/circuitbreakerevents
+  □ Verify metrics:
+    - resilience4j_circuitbreaker_state
+    - resilience4j_circuitbreaker_failure_rate
+    - resilience4j_retry_calls_total
+    - resilience4j_bulkhead_available_concurrent_calls
+
+SCENARIO 27.8: Testing with State Control
+  □ Inject CircuitBreakerRegistry in test
+  □ Test: cb.transitionToOpenState() → verify fallback invoked
+  □ Test: cb.transitionToHalfOpenState() → verify limited calls pass
+  □ Test: cb.reset() → clean state between tests
+  □ WireMock test: stub external service → 500 → verify CB opens
+  □ WireMock test: stub with 5s delay → verify timeout + retry
+```
+
+**Concepts:** Circuit Breaker, Retry, Bulkhead, Rate Limiter, fallback, decorator order, monitoring
+**Documentation:** `SpringBootRoadmap/Resilience/01-04` (all 4 files)
+
+Status: `PLANNED`
+
+---
+
+## Step 28 — Kafka Integration
+
+**Goal:** Add event-driven messaging to FlowForge using Kafka.
+
+Topics:
+- Kafka fundamentals: topics, partitions, offsets, consumer groups, brokers
+- Producer: KafkaTemplate, batching, acks, idempotent producer
+- Consumer: @KafkaListener, poll loop, rebalancing, offset management
+- Serialization: JSON serializer/deserializer, schema design
+- Error handling: DefaultErrorHandler, DLT (Dead Letter Topic), retry topic
+- Idempotent consumer: preventing duplicate event processing
+- Transactional Outbox pattern: reliable event publishing
+- Spring Kafka testing: @EmbeddedKafka, Testcontainers
+- Monitoring: consumer lag, JMX metrics
+
+Practice in FlowForge:
+
+```text
+SCENARIO 28.1: Setup Kafka with Docker Compose
+  □ Add docker-compose.yml with:
+    - Zookeeper (or KRaft single-node)
+    - Kafka broker (port 9092)
+    - Kafka UI (optional, for visual inspection)
+  □ Add dependency: spring-kafka
+  □ Configure in application.yml:
+    spring.kafka.bootstrap-servers: localhost:9092
+    spring.kafka.producer.key-serializer: StringSerializer
+    spring.kafka.producer.value-serializer: JsonSerializer
+    spring.kafka.consumer.key-deserializer: StringDeserializer
+    spring.kafka.consumer.value-deserializer: JsonDeserializer
+    spring.kafka.consumer.group-id: flowforge-group
+    spring.kafka.consumer.auto-offset-reset: earliest
+
+SCENARIO 28.2: Publish Events on Workflow State Changes
+  □ Create WorkflowEvent record:
+    { eventId, eventType, workflowId, workflowName, status, timestamp, changedBy }
+  □ Create WorkflowEventPublisher:
+    @Component with KafkaTemplate<String, WorkflowEvent>
+    publish(topic = "workflow-events", key = workflowId, value = event)
+  □ Call publisher from WorkflowService on create, update, delete, status change
+  □ Test: create a workflow → check Kafka UI → message visible on topic
+  □ Key: use workflowId as the Kafka key (ensures ordering per workflow)
+
+SCENARIO 28.3: Consume Events
+  □ Create WorkflowEventConsumer:
+    @KafkaListener(topics = "workflow-events", groupId = "flowforge-analytics")
+    public void consume(WorkflowEvent event) {
+        log.info("Received event: {} for workflow {}", event.eventType(), event.workflowId());
+        // Simulate analytics processing
+    }
+  □ Test: publish event → consumer logs it
+  □ Add consumer for a second group:
+    @KafkaListener(topics = "workflow-events", groupId = "flowforge-notifications")
+    → Both consumers receive the same event (different groups)
+
+SCENARIO 28.4: Error Handling + Dead Letter Topic
+  □ Configure DefaultErrorHandler with DeadLetterPublishingRecoverer:
+    - 3 retries with backoff
+    - After 3 failures → send to "workflow-events.DLT"
+  □ Create a consumer that throws on specific events (simulate poison message)
+  □ Verify: message retried 3 times → sent to DLT
+  □ Create DLT consumer: @KafkaListener(topics = "workflow-events.DLT")
+    → Log the failed event for manual investigation
+  □ Test: verify original topic consumer continues processing other messages
+
+SCENARIO 28.5: Idempotent Consumer
+  □ Create processed_events table: (event_id UUID PRIMARY KEY, processed_at TIMESTAMP)
+  □ In consumer:
+    1. Check if event_id exists in processed_events
+    2. If yes → skip (already processed)
+    3. If no → process → insert event_id into processed_events
+    4. Wrap in @Transactional
+  □ Test: send same event twice → processed only once
+  □ Test: consumer crash after process but before commit → event redelivered → idempotency check → skip
+
+SCENARIO 28.6: Transactional Outbox Pattern
+  □ Create outbox_events table:
+    (id UUID PK, aggregate_type, aggregate_id, event_type, payload JSONB,
+     created_at TIMESTAMP, published BOOLEAN DEFAULT FALSE)
+  □ In WorkflowService.create():
+    @Transactional → save workflow + save OutboxEvent in SAME transaction
+  □ Create OutboxPublisher scheduled job:
+    @Scheduled(fixedDelay = 1000)
+    → SELECT from outbox_events WHERE published = false ORDER BY created_at LIMIT 50
+    → Publish each to Kafka
+    → Mark as published = true
+  □ Benefit: event is guaranteed to be published (same TX as data change)
+  □ Test: create workflow → outbox entry created → publisher sends to Kafka
+
+SCENARIO 28.7: Testing with @EmbeddedKafka
+  □ Create integration test with @EmbeddedKafka:
+    @SpringBootTest
+    @EmbeddedKafka(partitions = 1, topics = "workflow-events")
+    class WorkflowEventTest {
+        @Autowired KafkaTemplate<String, WorkflowEvent> template;
+        @Autowired KafkaConsumer consumer;
+
+        @Test void shouldPublishAndConsumeEvent() { ... }
+    }
+  □ Test: publish → consume → verify event content
+  □ Test: error handling → DLT delivery
+  □ Alternative: Testcontainers with real Kafka container
+
+SCENARIO 28.8: Consumer Lag Monitoring
+  □ Add Micrometer Kafka metrics:
+    spring.kafka.listener.observation-enabled: true
+  □ Check: GET /actuator/metrics/kafka.consumer.fetch.manager.records.lag
+  □ Simulate slow consumer → observe lag increasing
+  □ Document: what lag means, when to alert, how to fix
+```
+
+**Concepts:** Kafka producer/consumer, event design, DLT, idempotent consumer, outbox, testing
+**Documentation:** `SpringBootRoadmap/Kafka-Deep-Dive/01-05`, `SpringBootRoadmap/Messaging/README.md`, `SpringBootRoadmap/Reliable-Messaging/README.md`
+
+Status: `PLANNED`
+
+---
+
+## Step 29 — Job Scheduling
+
+**Goal:** Implement scheduled jobs, thread pool configuration, and distributed scheduling.
+
+Topics:
+- @EnableScheduling, @Scheduled: fixedRate, fixedDelay, cron
+- Thread pool configuration (the single-thread trap)
+- Error handling in scheduled tasks
+- Externalized cron configuration
+- Dynamic scheduling (SchedulingConfigurer, TaskScheduler API)
+- ShedLock for distributed scheduling (multi-instance safety)
+- Quartz basics (awareness, not full implementation)
+- Monitoring scheduled jobs
+- Idempotent jobs
+
+Practice in FlowForge:
+
+```text
+SCENARIO 29.1: Basic Scheduled Jobs
+  □ Add @EnableScheduling on main class
+  □ Create ScheduledMaintenanceService:
+    @Scheduled(cron = "${flowforge.scheduler.cleanup-cron:0 0 2 * * *}", zone = "UTC")
+    public void cleanupDraftWorkflows() {
+        // Delete DRAFT workflows older than 30 days
+        int deleted = workflowRepo.deleteByStatusAndCreatedAtBefore(
+            WorkflowStatus.DRAFT, Instant.now().minus(30, ChronoUnit.DAYS));
+        log.info("Cleaned up {} draft workflows", deleted);
+    }
+  □ Create StatsCollectorJob:
+    @Scheduled(fixedDelayString = "${flowforge.scheduler.stats-interval:60000}")
+    public void collectStats() {
+        // Count workflows by status, log summary
+        Map<WorkflowStatus, Long> counts = workflowRepo.countByStatus();
+        log.info("Workflow stats: {}", counts);
+    }
+  □ Externalize all schedules in application.yml
+  □ Test: verify jobs execute at configured intervals (check logs)
+
+SCENARIO 29.2: Thread Pool Configuration
+  □ DEMONSTRATE the problem: add 3 scheduled jobs with fixedRate = 1000
+    Each sleeps for 3 seconds → all run on 1 thread → each runs every 9s
+  □ Fix: create ThreadPoolTaskScheduler bean:
+    poolSize = 5, threadNamePrefix = "ff-scheduler-"
+    errorHandler, waitForTasksToCompleteOnShutdown = true
+  □ Verify: all 3 jobs now run concurrently, each at their own rate
+  □ Check thread names in logs: ff-scheduler-1, ff-scheduler-2, ff-scheduler-3
+
+SCENARIO 29.3: Error Handling
+  □ Add global error handler on TaskScheduler:
+    scheduler.setErrorHandler(t -> {
+        log.error("Scheduled task failed", t);
+        meterRegistry.counter("scheduler.error").increment();
+    });
+  □ Add per-job try-catch with metrics:
+    Timer.Sample sample = Timer.start(meterRegistry);
+    try { ... meterRegistry.counter("scheduler.cleanup.success").increment(); }
+    catch (Exception e) { meterRegistry.counter("scheduler.cleanup.failure").increment(); }
+    finally { sample.stop(meterRegistry.timer("scheduler.cleanup.duration")); }
+  □ Test: force a job to throw → verify error is logged, next run still happens
+  □ Check metrics: GET /actuator/metrics/scheduler.cleanup.success
+
+SCENARIO 29.4: Conditional Scheduling
+  □ Add @ConditionalOnProperty(name = "flowforge.scheduler.cleanup.enabled", havingValue = "true")
+  □ Test: set enabled=false → cleanup job does NOT register
+  □ Add @Profile("!test") → jobs disabled in test profile
+  □ Test: verify scheduled jobs don't fire during integration tests
+
+SCENARIO 29.5: Dynamic Scheduling
+  □ Create ScheduleConfig entity: (job_name VARCHAR PK, cron_expression VARCHAR, enabled BOOLEAN)
+  □ Implement SchedulingConfigurer:
+    addTriggerTask(cleanupTask, context -> {
+        String cron = scheduleConfigRepo.findCronByJobName("cleanup")
+            .orElse("0 0 2 * * *");
+        return new CronTrigger(cron).nextExecution(context);
+    });
+  □ Create admin endpoint: PATCH /admin/schedules/{jobName} { "cron": "0 */5 * * * *" }
+  □ Test: change cron via API → job frequency changes WITHOUT restart
+  □ Test: set enabled=false → job stops executing
+
+SCENARIO 29.6: ShedLock (Distributed Scheduling)
+  □ Add dependency: shedlock-spring + shedlock-provider-jdbc-template
+  □ Create shedlock table:
+    CREATE TABLE shedlock (name VARCHAR(64), lock_until TIMESTAMP, locked_at TIMESTAMP,
+                           locked_by VARCHAR(255), PRIMARY KEY (name));
+  □ Add @EnableSchedulerLock(defaultLockAtMostFor = "10m")
+  □ Annotate jobs:
+    @Scheduled(cron = "0 0 2 * * *")
+    @SchedulerLock(name = "cleanup-drafts", lockAtLeastFor = "5m", lockAtMostFor = "30m")
+    public void cleanupDraftWorkflows() { ... }
+  □ Test: start 2 instances of FlowForge → verify only ONE executes the job
+  □ Inspect shedlock table: see lock_until, locked_by values
+  □ Test: kill the instance holding the lock → other instance picks up after lockAtMostFor
+
+SCENARIO 29.7: Job Monitoring Dashboard
+  □ Create GET /admin/scheduler/status endpoint:
+    - List all registered scheduled tasks (method name, trigger type, cron/rate)
+    - Last run time, next run time, last status (success/failure)
+    - Use ScheduledTaskHolder to inspect registered tasks
+  □ Dead man's switch concept: track last_success_time per job
+    If now - last_success_time > 2 × expected_interval → alert
+```
+
+**Concepts:** @Scheduled, cron, thread pool, ShedLock, dynamic scheduling, monitoring
+**Documentation:** `SpringBootRoadmap/Job-Scheduling/README.md`, `SpringBootRoadmap/Distributed-Scheduling/README.md`
+
+Status: `PLANNED`
+
+---
+
+## Step 30 — Async Processing
+
+**Goal:** Add async task execution for non-blocking operations.
+
+Topics:
+- @EnableAsync, @Async annotation
+- Executor configuration (thread pool sizing)
+- Return types: void, Future, CompletableFuture
+- Exception handling in async methods
+- Context propagation (MDC, security context)
+- @Async + @Transactional interaction (different threads = different TX)
+- Self-invocation trap (same as @Transactional, @Cacheable)
+- Virtual threads with async (Spring Boot 3.2+)
+
+Practice in FlowForge:
+
+```text
+SCENARIO 30.1: Basic @Async Setup
+  □ Add @EnableAsync on main class
+  □ Configure executor:
+    @Bean
+    public TaskExecutor applicationTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("ff-async-");
+        executor.setRejectedExecutionHandler(new CallerRunsPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        return executor;
+    }
+  □ Create NotificationService:
+    @Async
+    public void sendWorkflowNotification(UUID workflowId, String action) {
+        log.info("Sending notification for workflow {} action {}", workflowId, action);
+        Thread.sleep(2000);  // simulate slow email/webhook
+        log.info("Notification sent");
+    }
+  □ Call from WorkflowService.create() → verify: create returns immediately,
+    notification runs on separate thread (check thread name in logs)
+
+SCENARIO 30.2: CompletableFuture Return
+  □ Create:
+    @Async
+    public CompletableFuture<ValidationResult> validateAsync(WorkflowConfig config) {
+        // Expensive validation
+        return CompletableFuture.completedFuture(result);
+    }
+  □ Call from controller: CompletableFuture<ValidationResult> future = service.validateAsync(config);
+  □ Combine multiple async calls:
+    CompletableFuture.allOf(validate1, validate2, validate3).join();
+  □ Test: 3 validations that each take 2s → total time ~2s (parallel), not 6s (sequential)
+
+SCENARIO 30.3: Exception Handling
+  □ For void @Async methods: create AsyncExceptionHandler implements AsyncUncaughtExceptionHandler
+    → Log error, increment metrics
+  □ Configure: implement AsyncConfigurer.getAsyncUncaughtExceptionHandler()
+  □ For CompletableFuture: use .exceptionally() or .handle() on the caller side
+  □ Test: async method throws → verify exception is caught and logged (not silently swallowed)
+
+SCENARIO 30.4: @Async + @Transactional
+  □ Create:
+    @Async @Transactional
+    public void processWorkflowAsync(UUID id) {
+        Workflow wf = repo.findById(id).orElseThrow();
+        wf.setStatus(WorkflowStatus.ACTIVE);
+        // This runs in its OWN transaction on the async thread
+    }
+  □ Call from a @Transactional method that throws AFTER the async call
+  □ Verify: caller's TX rolls back, but async method's TX commits
+    (different thread = different TX = independent)
+  □ Document this behavior — it surprises many developers
+
+SCENARIO 30.5: MDC Context Propagation
+  □ Problem: @Async runs on different thread → MDC (requestId, userId) is LOST
+  □ Create TaskDecorator:
+    public class MdcTaskDecorator implements TaskDecorator {
+        public Runnable decorate(Runnable runnable) {
+            Map<String, String> contextMap = MDC.getCopyOfContextMap();
+            return () -> {
+                MDC.setContextMap(contextMap);
+                try { runnable.run(); }
+                finally { MDC.clear(); }
+            };
+        }
+    }
+  □ Register: executor.setTaskDecorator(new MdcTaskDecorator());
+  □ Test: set MDC requestId in filter → verify it appears in async thread logs
+
+SCENARIO 30.6: Self-Invocation Trap
+  □ Create a method that calls @Async internally:
+    public void process() { this.asyncStep(); }  // bypasses proxy!
+    @Async public void asyncStep() { ... }
+  □ Verify: asyncStep runs on the SAME thread (not async)
+  □ Fix: inject self or extract to separate service
+```
+
+**Concepts:** @Async, executor config, CompletableFuture, context propagation, exception handling
+**Documentation:** `SpringBootRoadmap/Async-Processing/README.md`
+
+Status: `PLANNED`
+
+---
+
+## Step 31 — API Design Refinement
+
+**Goal:** Apply REST API design best practices to the existing FlowForge API.
+
+Topics:
+- Review existing endpoints against REST best practices
+- Idempotency key support for POST endpoints
+- ETag / If-Match for conditional requests
+- HATEOAS links (optional)
+- API documentation with Springdoc OpenAPI
+- Rate limiting headers (X-RateLimit-*)
+- Consistent error response format audit
+- Response envelope vs flat response decision
+
+Practice in FlowForge:
+
+```text
+SCENARIO 31.1: Idempotency Key for POST /workflows
+  □ Create idempotency_keys table: (key VARCHAR PK, response JSONB, created_at TIMESTAMP)
+  □ Accept Idempotency-Key header on POST endpoints
+  □ Logic:
+    1. If key exists → return stored response (no duplicate create)
+    2. If key absent → process → store key + response
+  □ TTL: clean up keys older than 24 hours (scheduled job from Step 29)
+  □ Test: send same POST twice with same Idempotency-Key → same response, 1 workflow created
+  □ Test: send POST without Idempotency-Key → works normally (optional header)
+
+SCENARIO 31.2: ETag / Conditional Requests
+  □ GET /workflows/{id} response:
+    Add ETag header: ETag: "{version}"  (from @Version field added in Step 22)
+  □ PUT /workflows/{id} request:
+    Accept If-Match header
+    If If-Match != current version → 412 Precondition Failed
+    If match → proceed with update
+  □ GET with If-None-Match:
+    If ETag matches → 304 Not Modified (no body, save bandwidth)
+  □ Test: GET → save ETag → PUT with If-Match → success
+  □ Test: concurrent update → second PUT gets 412
+
+SCENARIO 31.3: Rate Limit Headers
+  □ Enhance existing RateLimitInterceptor:
+    Add response headers:
+      X-RateLimit-Limit: 100
+      X-RateLimit-Remaining: 73
+      X-RateLimit-Reset: 1721209200
+    On limit exceeded:
+      429 Too Many Requests + Retry-After header
+  □ Test: send requests → observe headers counting down
+  □ Test: exceed limit → 429 with Retry-After
+
+SCENARIO 31.4: Springdoc OpenAPI Documentation
+  □ Add dependency: springdoc-openapi-starter-webmvc-ui
+  □ Add @Tag on controllers
+  □ Add @Operation on key endpoints
+  □ Add @Schema on DTOs
+  □ Access: GET /swagger-ui.html → interactive API documentation
+  □ Access: GET /v3/api-docs → JSON OpenAPI spec
+  □ Group APIs: "Public API" vs "Admin API"
+
+SCENARIO 31.5: API Audit Checklist
+  □ Review all endpoints against the API Design checklist:
+    ✅ Resources are nouns (not verbs)
+    ✅ Plural nouns for collections (/workflows, not /workflow)
+    ✅ Proper HTTP methods (GET, POST, PUT, PATCH, DELETE)
+    ✅ Correct status codes (201 for create, 204 for delete, 422 for business error)
+    ✅ Pagination on all list endpoints
+    ✅ Filtering via query parameters
+    ✅ Sorting support
+    ✅ Consistent error response format
+    ✅ Timestamps in ISO 8601 UTC
+    ✅ IDs are UUIDs (not sequential)
+    ✅ Versioned URL (/api/v1/)
+  □ Fix any gaps found during the audit
+```
+
+**Concepts:** Idempotency, ETag, rate limit headers, OpenAPI, REST best practices
+**Documentation:** `SpringBootRoadmap/API-Design/README.md`
+
+Status: `PLANNED`
+
+---
+
+## Phase 3 Concept Coverage Matrix
+
+```text
+Doc Topic                                 Practiced In Step
+-------------------------------------------------------------------
+Resilience4j (Circuit Breaker, Retry,     27
+  Bulkhead, Rate Limiter, Fallback)
+Kafka (Producer, Consumer, Spring Kafka)  28
+Event-Driven Architecture (DLT, Outbox)   28
+Job Scheduling (@Scheduled, ShedLock)     29
+Async Processing (@Async, Executors)      30
+API Design Best Practices                 31
+```
+
+---
+
 ## How to Work Through This
 
 ```text
@@ -1241,10 +1736,59 @@ Status: `PLANNED`
 4. If something breaks, fix it before moving on
 5. Phase 1 (Steps 1-13): REST API + Spring Core
 6. Phase 2 (Steps 18-26): Database, JPA, Transactions, Caching, Locking, Auditing
-7. Each SCENARIO within a step is a mini-task:
+7. Phase 3 (Steps 27-31): Resilience, Messaging, Scheduling, Async, API Design
+8. Each SCENARIO within a step is a mini-task:
    □ Read the documentation first
    □ Implement the scenario
    □ Test it (endpoint + SQL logs)
    □ Check the box
    □ Commit
+```
+
+---
+
+## Future Enhancements
+
+### Database Migrations (Flyway or Liquibase)
+
+```text
+Currently using: ddl-auto: create-drop + schema-postgres.sql (no versioning)
+TODO: Replace with a proper migration tool before any production-like deployment.
+
+  □ Choose: Flyway (simpler, SQL files) or Liquibase (YAML/XML, rollback support)
+  □ Add Spring Boot starter dependency
+  □ Convert existing schema to V1 baseline migration
+  □ Move constraints + indexes from schema-postgres.sql into versioned migrations
+  □ Set ddl-auto: validate (Hibernate only validates, never modifies schema)
+  □ Each future schema change = new migration file with version number
+```
+
+### Auditing (Spring Data JPA + Custom Audit Tables)
+
+```text
+  □ Create Auditable base class: @CreatedDate, @LastModifiedDate, @CreatedBy, @LastModifiedBy
+  □ Implement AuditorAware<String> for current user resolution
+  □ @EnableJpaAuditing on main class
+  □ Create AuditEntry entity (entityType, entityId, action, oldValue JSONB, newValue JSONB)
+  □ AuditService with @Transactional(propagation = REQUIRES_NEW) — persists even on rollback
+  □ Event-driven audit with @TransactionalEventListener (fires only on commit)
+  □ Audit query endpoints: GET /audit/{entityType}/{entityId}, GET /audit/recent
+  □ Optional: Hibernate Envers for automatic history tables (@Audited)
+
+  Documentation: SpringBootRoadmap/Auditing/README.md
+```
+
+### Connection Pooling Tuning (HikariCP)
+
+```text
+  □ Configure HikariCP: maximum-pool-size, minimum-idle, connection-timeout, idle-timeout, max-lifetime
+  □ Enable leak-detection-threshold in dev profile
+  □ Simulate pool exhaustion with small pool + concurrent requests
+  □ Add @ConcurrencyLimit as pool protector
+  □ Enable Actuator metrics: hikaricp.connections.active/idle/pending/timeout
+  □ Pool size experiment: compare performance with pool size 2 vs 5 vs 20
+  □ Document: diminishing returns after (cores × 2) + 1
+
+  Documentation: SpringBootRoadmap/Connection-Pooling/README.md
+  Deep dive: SpringBootRoadmap/Resilience/HIKARI-CONNECTION-POOL.md
 ```

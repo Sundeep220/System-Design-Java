@@ -1,6 +1,9 @@
 package com.flowforge.flowforge.repository;
 
+import com.flowforge.flowforge.dto.WorkflowIdNameStatus;
+import com.flowforge.flowforge.dto.WorkflowProjection;
 import com.flowforge.flowforge.entity.Workflow;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -54,6 +57,26 @@ public interface WorkflowRepository extends JpaRepository<Workflow, UUID>,
             @Param("createdAfter") Instant createdAfter,
             @Param("createdBefore") Instant createdBefore,
             Pageable pageable);
+
+    // ── Step 20: N+1 fixes ──
+
+    // Fix 1: JOIN FETCH — single query, but breaks pagination
+    @Query("SELECT DISTINCT w FROM Workflow w LEFT JOIN FETCH w.steps")
+    List<Workflow> findAllWithSteps();
+
+    // Fix 2: @EntityGraph — LEFT JOIN, works better with derived queries
+    @EntityGraph(attributePaths = {"steps"})
+    @Query("SELECT w FROM Workflow w")
+    List<Workflow> findAllWithStepsEntityGraph();
+
+    // ── Step 20: DTO Projections ──
+
+    // Interface projection — only id, name, status columns selected
+    List<WorkflowProjection> findAllProjectedBy();
+
+    // Class-based DTO projection with constructor expression
+    @Query("SELECT new com.flowforge.flowforge.dto.WorkflowIdNameStatus(w.id, w.name, w.status) FROM Workflow w")
+    List<WorkflowIdNameStatus> findAllDtoProjection();
 
     // Cursor pagination: fetch first page (no cursor)
     @Query("SELECT w FROM Workflow w ORDER BY w.createdAt DESC, w.id DESC")
