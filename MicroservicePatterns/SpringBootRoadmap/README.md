@@ -44,6 +44,265 @@ graph TD
 
 ---
 
+# 📖 Study Order — Folder-by-Folder Reading Guide
+
+Use this table to know **exactly what to read and in what order**. Each phase maps to a folder. Status shows what's written (`✅`) vs planned (`⬜`).
+
+> **Paths are relative to `MicroservicePatterns/`** unless marked otherwise.
+
+---
+
+## Pillar 1 — Java + JVM + Concurrency
+
+| Order | Phase | Folder | Status |
+|---|---|---|---|
+| 1 | Java Core | `JavaCore/` | ✅ |
+| 2 | Java Collections | `JavaCollections/` | ✅ |
+| 3 | Concurrency — Thread Basics | `Multithreading/ThreadBasics/` | ✅ |
+| 4 | Concurrency — Callable & Future | `Multithreading/Callable-Future/` | ✅ |
+| 5 | Concurrency — CompletableFuture | `Multithreading/CompletableFuture/` | ✅ |
+| 6 | Concurrency — Fork/Join Pool | `Multithreading/ForkJoinPool/` | ✅ |
+| 7 | Concurrency — ThreadLocal | `Multithreading/ThreadLocal/` | ✅ |
+| 8 | Concurrent Collections | `ConcurrentCollections/` | ✅ |
+| 9 | JVM Architecture | `JVM Basics/Architecture/` | ✅ |
+| 10 | JVM — Class Loading | `JVM Basics/ClassLoading/` | ✅ |
+| 11 | JVM — GC Pauses | `JVM Basics/GCPauses/` | ✅ |
+| 12 | JVM — CPU Profiling | `JVM Basics/CPUProfiling/` | ✅ |
+
+---
+
+## Pillar 2 — Backend Fundamentals & HTTP
+
+| Order | Phase | Folder | Status |
+|---|---|---|---|
+| 13 | HTTP Request/Response | `HTTP/RequestResponse/` | ✅ |
+| 14 | HTTP Versions | `HTTP/Versions/` | ✅ |
+| 15 | HTTP Caching | `HTTP/Caching/` | ✅ |
+| 16 | Security — TLS / mTLS / SSH | `Security/` | ✅ |
+
+---
+
+## Pillar 3 — REST + API Engineering
+
+| Order | Phase | Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 17 | REST API Design | `REST-API-Design/` | ✅ |
+| 18 | API Design (advanced) | `API-Design/` | ✅ |
+| 19 | Pagination | `Pagination/` | ✅ |
+| 20 | Searching | `Searching/` | ✅ |
+| 21 | Filtering & Sorting | `Filtering-Sorting/` | ✅ |
+| 22 | DTOs & API Contracts | `DTOs-API-Contracts/` | ✅ |
+
+---
+
+## Pillar 4 — Spring Framework
+
+| Order | Phase | Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 23 | Spring Core (IoC, DI, Beans) | `Spring-Core/` | ✅ |
+| 24 | Spring Boot Internals | `Spring-Boot-Internals/` | ✅ |
+| 25 | Configuration Management | `Configuration-Management/` | ✅ |
+| 26 | Servlet Architecture | `Servlet-Architecture/` | ✅ |
+| 27 | Spring MVC | `Spring-MVC/` | ✅ |
+| 28 | Filters & Interceptors | `Filters-Interceptors/` | ✅ |
+| 29 | Exception Handling & Validation | `Exception-Handling-Validation/` | ✅ |
+| 30 | AOP | `AOP/` | ✅ |
+| 31 | AOP Proxies | `AOP-Proxies/` | ✅ |
+
+---
+
+## Pillar 5 — Database + JPA + Hibernate
+
+| Order | Phase | Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 32 | Database Fundamentals | `Database-Fundamentals/` | ✅ |
+| 33 | JPA / Hibernate | `JPA-Hibernate/` | ✅ |
+| 34 | Hibernate Performance | `Hibernate-Performance/` | ✅ |
+| 35 | Transactions | `Transactions/` | ✅ |
+| 36 | Concurrency Control | `Concurrency-Control/` | ✅ |
+| 37 | Connection Pooling | `Connection-Pooling/` | ✅ |
+
+---
+
+## Pillar 6 — Caching + Backend Features
+
+| Order | Phase | Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 38 | Caching | `Caching/` | ✅ |
+| 39 | Distributed Locking | `Distributed-Locking/` | ✅ |
+| 40 | Job Scheduling | `Job-Scheduling/` | ✅ |
+| 41 | Distributed Scheduling | `Distributed-Scheduling/` | ✅ |
+| 42 | Job Processing | `Job-Processing/` | ✅ |
+| 43 | Async Processing | `Async-Processing/` | ✅ |
+| 44 | Auditing | `Auditing/` | ✅ |
+
+---
+
+## Pillar 7 — Messaging + Kafka
+
+| Order | Phase | Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 45 | Messaging Fundamentals | `Messaging/` | ✅ |
+| 46 | Kafka Deep Dive | `Kafka-Deep-Dive/` | ✅ |
+| 47 | Reliable Messaging | `Reliable-Messaging/` | ✅ |
+
+---
+
+## Pillar 8 — Resilience + Event-Driven + Distributed Patterns
+
+### 8A — Resilience (read first)
+
+| Order | Phase | File / Folder (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 48 | Resiliency Fundamentals | `Resilience/01-Resiliency-Fundamentals.md` | ✅ |
+| 49 | Resilience4j Deep Dive | `Resilience/02-Resilience4j-Deep-Dive.md` | ✅ |
+| 50 | Resilience4j + Spring Boot | `Resilience/03-Resilience4j-Spring-Boot.md` | ✅ |
+| 51 | Resilience4j Interview Scenarios | `Resilience/04-Resilience4j-Interview-Scenarios.md` | ✅ |
+
+### 8B — Event-Driven Architecture
+
+| Order | Phase | File (under `SpringBootRoadmap/`) | Status |
+|---|---|---|---|
+| 52 | Messaging Fundamentals | `Event-Driven-Patterns/01-Messaging-Fundamentals.md` | ✅ |
+| 53 | Event-Driven Architecture Patterns | `Event-Driven-Patterns/02-Event-Driven-Architecture.md` | ✅ |
+
+### 8C — Distributed Patterns (read in this order)
+
+| Order | Phase | File (under `SpringBootRoadmap/Distributed-Patterns/`) | Status |
+|---|---|---|---|
+| 54 | Transactional Outbox | `09-Transactional-Outbox-Pattern.md` | ✅ |
+| 55 | Saga Pattern | `01-Saga-Pattern.md` | ✅ |
+| 56 | CQRS & Event Sourcing | `03-CQRS-Event-Sourcing.md` | ✅ |
+| 57 | API Gateway | `02-API-Gateway-Pattern.md` | ✅ |
+| 58 | Service Discovery | `05-Service-Discovery-Pattern.md` | ✅ |
+| 59 | Bulkhead Pattern | `07-Bulkhead-Pattern.md` | ✅ |
+| 60 | Backpressure Pattern | `04-Backpressure-Pattern.md` | ✅ |
+| 61 | Rate Limiting & Throttling | `10-Rate-Limiting-Throttling.md` | ✅ |
+| 62 | Sidecar & Service Mesh | `08-Sidecar-Service-Mesh.md` | ✅ |
+| 63 | Strangler Fig Pattern | `06-Strangler-Fig-Pattern.md` | ✅ |
+
+> **Recommended reading order rationale:**
+> 1. **Outbox** first — foundational pattern for reliable event publishing (needed before Saga & CQRS)
+> 2. **Saga** — distributed transactions (builds on outbox & messaging)
+> 3. **CQRS & Event Sourcing** — separating reads/writes (builds on events & outbox)
+> 4. **API Gateway** — entry point to microservices (routing, auth, rate limiting)
+> 5. **Service Discovery** — how services find each other (required by gateway)
+> 6. **Bulkhead** — failure isolation (complements Resilience4j circuit breaker)
+> 7. **Backpressure** — flow control for producers/consumers (Kafka, reactive)
+> 8. **Rate Limiting** — protecting APIs from overload (gateway + service level)
+> 9. **Sidecar & Service Mesh** — infrastructure-level concerns (advanced)
+> 10. **Strangler Fig** — migration strategy (read last, applies when moving from monolith)
+
+---
+
+## Pillar 9 — Production & Beyond
+
+| Order | Phase | Folder | Status |
+|---|---|---|---|
+| 64 | Consistent Hashing | `ConsistentHashing/` | ✅ |
+| 65 | Distributed Systems (Bloom Filter, Gossip, etc.) | `DistributedSystems/` | ✅ |
+| 66 | Java 25 / Spring Boot 4 Changes | `SpringBootRoadmap/Java25-SpringBoot4-Changes/` | ✅ |
+| 67 | Practice Project (FlowForge) | `PracticeProject/` | ✅ |
+| — | Observability | — | ⬜ |
+| — | Testing | — | ⬜ |
+| — | Performance Engineering | — | ⬜ |
+| — | Docker & Kubernetes | — | ⬜ |
+
+---
+
+## Quick Visual — The Complete Reading Path
+
+```mermaid
+flowchart TD
+    subgraph "1. Java Core"
+        JC[JavaCore] --> JCOL[JavaCollections]
+    end
+
+    subgraph "2. Concurrency"
+        JCOL --> TB[ThreadBasics]
+        TB --> CF[Callable-Future]
+        CF --> CPF[CompletableFuture]
+        CPF --> FJP[ForkJoinPool]
+        FJP --> TL[ThreadLocal]
+        TL --> CC[ConcurrentCollections]
+    end
+
+    subgraph "3. JVM"
+        CC --> JVM[JVM Basics]
+    end
+
+    subgraph "4. HTTP & Security"
+        JVM --> HTTP[HTTP]
+        HTTP --> SEC[Security TLS/SSH]
+    end
+
+    subgraph "5. API Engineering"
+        SEC --> REST[REST API Design]
+        REST --> PG[Pagination]
+        PG --> SR[Search]
+        SR --> FS[Filter & Sort]
+        FS --> DTO[DTOs]
+    end
+
+    subgraph "6. Spring Framework"
+        DTO --> SC[Spring Core]
+        SC --> SBI[Spring Boot Internals]
+        SBI --> MVC[Spring MVC]
+        MVC --> AOP[AOP & Proxies]
+    end
+
+    subgraph "7. Database Layer"
+        AOP --> DB[Database Fundamentals]
+        DB --> JPA[JPA / Hibernate]
+        JPA --> TX[Transactions]
+        TX --> POOL[Connection Pooling]
+    end
+
+    subgraph "8. Backend Features"
+        POOL --> CACHE[Caching]
+        CACHE --> LOCK[Distributed Locking]
+        LOCK --> SCHED[Scheduling]
+        SCHED --> ASYNC[Async Processing]
+    end
+
+    subgraph "9. Messaging"
+        ASYNC --> MSG[Messaging]
+        MSG --> KAFKA[Kafka Deep Dive]
+        KAFKA --> REL[Reliable Messaging]
+    end
+
+    subgraph "10. Resilience & Patterns"
+        REL --> RES[Resilience Fundamentals]
+        RES --> R4J[Resilience4j]
+    end
+
+    subgraph "11. Event-Driven"
+        R4J --> EDA[Event-Driven Architecture]
+    end
+
+    subgraph "12. Distributed Patterns"
+        EDA --> OUTBOX[Transactional Outbox]
+        OUTBOX --> SAGA[Saga Pattern]
+        SAGA --> CQRS[CQRS & Event Sourcing]
+        CQRS --> APIGW[API Gateway]
+        APIGW --> DISC[Service Discovery]
+        DISC --> BULK[Bulkhead]
+        BULK --> BP[Backpressure]
+        BP --> RL[Rate Limiting]
+        RL --> MESH[Sidecar & Service Mesh]
+        MESH --> STNGL[Strangler Fig]
+        STNGL --> PROD[Practice Project]
+    end
+```
+
+---
+
+# Detailed Phase Breakdown
+
+Below is the full detailed content for every phase.
+
+---
+
 # PHASE 1 — Java Foundations for Backend Engineering
 
 Since you already know Java, do this as a **deep revision**, not beginner learning.
