@@ -11,8 +11,9 @@ TLS, mTLS, and SSH are the three foundational security protocols every backend e
 | 1 | `TLS/` | **Start here.** What TLS is, HTTPS = HTTP + TLS, certificate types (DV/OV/EV/Wildcard/SAN), Let's Encrypt + ACME, certificate lifecycle, common TLS errors and fixes, debugging tools (openssl/curl), HSTS, TLS in Java/Spring Boot/Kubernetes |
 | 2 | `TLS-mTLS/` | **Go deeper.** SSL vs TLS history, TLS 1.2 vs 1.3 handshake step-by-step, cryptography fundamentals (symmetric vs asymmetric, forward secrecy), mTLS (mutual auth), mTLS in Istio/service mesh, certificate pinning |
 | 3 | `SSH/` | SSH protocol, password vs public key auth, host keys + known_hosts, SSH agent, tunneling/port forwarding, SCP/SFTP, CI/CD deploy keys, SSH vs TLS comparison |
+| 4 | `Authentication/` | **Complete auth guide.** Full evolution from HTTP Basic (1996) to Passkeys (2022+): Basic/Digest, session cookies + CSRF, JWT + refresh tokens, OAuth 2.0/OIDC + PKCE (all grants, dead flows), MFA/TOTP/push, WebAuthn/FIDO2 passkeys, SAML/Kerberos/LDAP, API keys/mTLS/workload identity, decision guide. Every flow has a mermaid diagram. |
 
-Read `TLS/` first for the practical side, then `TLS-mTLS/` for the cryptographic internals, then `SSH/` — SSH uses similar key concepts and comparing it after TLS makes it much clearer.
+Read `TLS/` first for the practical side, then `TLS-mTLS/` for the cryptographic internals, then `SSH/` — SSH uses similar key concepts and comparing it after TLS makes it much clearer. `Authentication/` builds on all of it — transport security is what makes user authentication possible.
 
 ---
 
