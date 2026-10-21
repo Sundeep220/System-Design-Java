@@ -1,4 +1,7 @@
-package TicTacToe.Version1;
+package InterviewProblems.TicTacToe;
+
+import TicTacToe.Version1.Board;
+import TicTacToe.Version1.Cell;
 
 public class ConsoleDisplay {
 
