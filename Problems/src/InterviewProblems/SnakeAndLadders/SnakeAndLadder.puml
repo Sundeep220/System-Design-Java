@@ -1,0 +1,96 @@
+@startuml SnakeAndLadder
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle Bold
+
+enum GameStatus {
+    NOT_STARTED
+    IN_PROGRESS
+    FINISHED
+}
+
+abstract class BoardEntity {
+    # int start
+    # int end
+    + int getStart()
+    + int getEnd()
+}
+
+class Snake {
+    + Snake(int head, int tail)
+}
+
+class Ladder {
+    + Ladder(int bottom, int top)
+}
+
+interface Dice {
+    + int roll()
+}
+
+class SingleDice {
+    - Random random
+    + int roll()
+}
+
+class Player <<record>> {
+    + String name()
+}
+
+class Board {
+    - int size
+    - Map<Integer, BoardEntity> jumps
+    - Map<Player, Integer> playerPositions
+    + Board(int size, List<Snake> snakes, List<Ladder> ladders, List<Player> players)
+    + int getSize()
+    + int getPlayerPosition(Player player)
+    + void setPlayerPosition(Player player, int position)
+    + int getNextPosition(int current, int steps)
+}
+
+class Game {
+    - Board board
+    - List<Player> players
+    - Dice dice
+    - int currentIndex
+    - GameStatus status
+    - Player winner
+    + Game(Board board, List<Player> players, Dice dice)
+    + void start()
+    + synchronized void playTurn()
+    - void movePlayer(Player player, int steps)
+    - boolean checkWin(Player player)
+    + Player getCurrentPlayer()
+    + Player getWinner()
+    + GameStatus getStatus()
+}
+
+class GameManager {
+    - {static} GameManager instance
+    - Map<String, Game> games
+    - GameManager()
+    + {static} synchronized GameManager getInstance()
+    + String createGame(Board board, List<Player> players, Dice dice)
+    + Game getGame(String id)
+    + void removeGame(String id)
+}
+
+' Inheritance
+BoardEntity <|-- Snake         : extends
+BoardEntity <|-- Ladder        : extends
+Dice        <|.. SingleDice    : implements
+
+' Composition
+Game *-right- "1" Board        : "owns >"
+Game *-- "1" Dice              : "rolls >"
+Game *-- "2..*" Player         : "turn order >"
+Game --> GameStatus            : "tracks status >"
+
+' Association
+Board "1" --> "0..*" BoardEntity : "jump lookup\n(keyed by start cell) >"
+Board "1" --> "2..*" Player      : "tracks position >"
+
+' Session management
+GameManager "1" --> "0..*" Game : "manages sessions >"
+
+@enduml
